@@ -1,0 +1,6 @@
+[package]
+name = "rusty-variation"
+version = "0.1.0"
+authors = ["Wen Kokke <wen.kokke@gmail.com>"]
+
+[dependencies]
