@@ -72,17 +72,26 @@ mod tests {
 
     #[test]
     fn it_works() {
+
+        // Fork our "addition" process
         let s = fork!(move |s: Receive<u32,Receive<u32,Send<u32,End>>>| {
             let (x, s) = receive(s);
             let (y, s) = receive(s);
             let End = send(x.wrapping_add(y), s);
         });
+
+        // Pick some random numbers
         let mut rng = thread_rng();
         let x: u32 = rng.gen();
         let y: u32 = rng.gen();
+
+        // Send them to the "addition" process
         let s = send(x, s);
         let s = send(y, s);
         let (z, End) = receive(s);
+
+        // Check the results
         assert_eq!(x.wrapping_add(y), z);
+
     }
 }
