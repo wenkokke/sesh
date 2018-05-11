@@ -120,11 +120,11 @@ mod tests {
         // Fork our calculator server
         let s: CalcClient<i32> = fork!(move |s: CalcServer<i32>| {
             offer(s,
-                  |s: NegServer<i32>| {
+                  |s| {
                       let (x, s) = receive(s);
                       let End = send(-x, s);
                   },
-                  |s: AddServer<i32>| {
+                  |s| {
                       let (x, s) = receive(s);
                       let (y, s) = receive(s);
                       let End = send(x.wrapping_add(y), s);
@@ -137,7 +137,7 @@ mod tests {
         let y: i32 = rng.gen();
 
         // Send them to the calculator server
-        let s: AddClient<i32> = select_right::<NegClient<i32>, _>(s);
+        let s = select_right::<NegClient<i32>, _>(s);
         let s = send(x, s);
         let s = send(y, s);
         let (z, End) = receive(s);
