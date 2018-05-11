@@ -1,91 +1,88 @@
-use std::marker::PhantomData;
-use std::mem;
-use std::thread;
-use std::sync::mpsc::{SyncSender, Receiver};
-use std::sync::mpsc;
+extern crate rand;
 
-// Session types and duality
-struct Terminate(SyncSender<()>);
-struct Wait(Receiver<()>);
-struct Send<A, S: Session>(SyncSender<(A, <S as Session>::Dual)>);
-struct Receive<A, S: Session>(Receiver<(A, <S as Session>::Dual)>);
+#[macro_use]
+pub mod rv {
 
-trait Session {
-    type Dual: Session;
+    use std::marker;
+    use std::sync::mpsc::{Sender,Receiver};
+    use std::sync::mpsc;
 
-    type Chan;
+    pub struct End;
+    pub struct Send<T, S: Session> {
+        channel: Sender<(T, S::Dual)>,
+    }
+    pub struct Receive<T, S: Session> {
+        channel: Receiver<(T, S)>,
+    }
 
-    fn wrap(c: Self::Chan) -> Self;
-}
-impl Session for Terminate
-{
-    type Dual = Wait;
-    type Chan = SyncSender<()>;
+    pub trait Session: marker::Sized + marker::Send {
+        type Dual: Session<Dual=Self>;
 
-    fn wrap(c: Self::Chan) -> Self { Terminate(c) }
-}
-impl Session for Wait
-{
-    type Dual = Terminate;
-    type Chan = Receiver<()>;
+        fn new() -> (Self, Self::Dual);
+    }
+    impl Session for End {
+        type Dual = End;
 
-    fn wrap(c: Self::Chan) -> Self { Wait(c) }
-}
-impl<A, S: Session> Session for Send<A, S>
-where
-    <S as Session>::Dual: Session
-{
-    type Dual = Receive<A, <S as Session>::Dual>;
-    type Chan = SyncSender<(A, <S as Session>::Dual)>;
+        fn new() -> (Self, Self::Dual) {
+            return (End, End);
+        }
+    }
+    impl<T: marker::Send, S: Session> Session for Send<T, S> {
+        type Dual = Receive<T, S::Dual>;
 
-    fn wrap(c: Self::Chan) -> Self { Send(c) }
-}
-impl<A, S: Session> Session for Receive<A, S>
-where
-    <S as Session>::Dual: Session
-{
-    type Dual = Send<A, <S as Session>::Dual>;
-    type Chan = Receiver<(A, <S as Session>::Dual)>;
+        fn new() -> (Self, Self::Dual) {
+            let (sender, receiver) = mpsc::channel::<(T, S::Dual)>();
+            return (Send { channel: sender }, Receive { channel: receiver });
+        }
+    }
+    impl<T: marker::Send, S: Session> Session for Receive<T, S> {
+        type Dual = Send<T, S::Dual>;
 
-    fn wrap(c: Self::Chan) -> Self { Receive(c) }
-}
+        fn new() -> (Self, Self::Dual) {
+            let (there, here) = Self::Dual::new();
+            return (here, there);
+        }
+    }
 
+    pub fn send<T: marker::Send, S: Session>(value: T, session: Send<T, S>) -> S {
+        let (here, there) = S::new();
+        session.channel.send((value, there)).unwrap();
+        return here;
+    }
+    pub fn receive<T: marker::Send, S: Session>(session: Receive<T, S>) -> (T, S) {
+        return session.channel.recv().unwrap();
+    }
 
-fn fork<S: Session, K: FnOnce(S) -> Terminate>(k: K) -> <S as Session>::Dual {
-    let (ct, cw) = mpsc::sync_channel::<()>(0);
-    let st = <S as Session>::wrap(ct);
-    let sw = <<S as Session>::Dual as Session>::wrap(cw);
-    thread::spawn(move || {
-        mem::forget(k(sw));
-    });
-    return sw;
-}
-fn send<A, S: Session>(v: A, s: Send<A,S>) -> S
-{
-}
-fn receive<A, S: Session>(s: Receive<A,S>) -> (A, S)
-{
-}
-fn wait(s: Wait) -> ()
-{
-}
-fn link<S: Session>(s1: S, s2: <S as Session>::Dual) -> Terminate
-{
+    #[macro_export]
+    macro_rules! fork {
+        (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
+            let ($session_name, there) = <$session_type as $crate::rv::Session>::new();
+            ::std::thread::spawn(move || {
+                $forked_process;
+            });
+            there
+        }};
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Not;
-    use super::{Send,Terminate};
+    use rand::{Rng, thread_rng};
+    use rv::{Send,Receive,End,send,receive};
 
-    // Test if the implementation of Not is correct
-    type S = Send<(),Send<(),Terminate>>;
-    type NotS = <S as Not>::Output;
-    type NotNotS = <NotS as Not>::Output;
-
-    #[allow(dead_code,unused_variables)]
-    fn a_equal_to_c(s: S) {
-        let not_s: NotS = Not::not(s);
-        let not_not_s: NotNotS = Not::not(not_s);
+    #[test]
+    fn it_works() {
+        let s = fork!(move |s: Receive<u32,Receive<u32,Send<u32,End>>>| {
+            let (x, s) = receive(s);
+            let (y, s) = receive(s);
+            let End = send(x.wrapping_add(y), s);
+        });
+        let mut rng = thread_rng();
+        let x: u32 = rng.gen();
+        let y: u32 = rng.gen();
+        let s = send(x, s);
+        let s = send(y, s);
+        let (z, End) = receive(s);
+        assert_eq!(x.wrapping_add(y), z);
     }
 }
