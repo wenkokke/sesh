@@ -100,34 +100,40 @@ pub mod rv {
 
     #[macro_export]
     macro_rules! offer {
-        ($session:expr, { $($pat:pat => $result:expr,)* }) => {{
-            receive($session).map(
-                |(l, End)|
+        ($session:expr, { $($pat:pat => $result:expr,)* }) => {
+            (|()| {
+                let (l, End) = receive($session)?;
                 match l {
                     $(
                         $pat => $result,
                     )*
-                });
-        }};
+                };
+            })(());
+        };
     }
 
     #[macro_export]
     macro_rules! select {
-        ($label:path, $session:expr) => {{
-            let (here, there) = <_ as Session>::new();
-            send($label(there), $session).map(|End| here)
-        }};
+        ($label:path, $session:expr) => {
+            (|()| {
+                let (here, there) = <_ as Session>::new();
+                let End = send($label(there), $session)?;
+                Some(here)
+            })(());
+        };
     }
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     extern crate rand;
 
     use rv::*;
     use self::rand::{Rng, thread_rng};
 
-    /// Simplest test -- sending a ping.
+    // Test sending a ping across threads.
+
     #[test]
     fn ping_works() {
         let s = fork!(move |s: Send<(), End>| {
@@ -136,15 +142,18 @@ mod tests {
         receive(s);
     }
 
+    // Test a simple calculator server, implemented using binary choice.
+
     type NegServer<N> = Receive<N, Send<N, End>>;
-    type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
     type NegClient<N> = <NegServer<N> as Session>::Dual;
+
+    type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
     type AddClient<N> = <AddServer<N> as Session>::Dual;
 
     type SimpleCalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
     type SimpleCalcClient<N> = <SimpleCalcServer<N> as Session>::Dual;
 
-    fn calc_server(s: SimpleCalcServer<i32>) -> Option<()> {
+    fn simple_calc_server(s: SimpleCalcServer<i32>) -> Option<()> {
         offer(s,
               |s: NegServer<i32>| {
                   let (x, s) = receive(s)?;
@@ -159,7 +168,7 @@ mod tests {
               })
     }
 
-    fn calc_client(x: i32, y: i32, s: SimpleCalcClient<i32>) -> Option<i32> {
+    fn simple_calc_client(x: i32, y: i32, s: SimpleCalcClient<i32>) -> Option<i32> {
         let s = select_right::<NegClient<i32>, _>(s)?;
         let s = send(x, s)?;
         let s = send(y, s)?;
@@ -168,16 +177,20 @@ mod tests {
     }
 
     #[test]
-    fn calc_works() {
+    fn simple_calc_works() {
+
+        // Pick some random numbers.
         let mut rng = thread_rng();
         let x: i32 = rng.gen();
         let y: i32 = rng.gen();
 
+        // Create a calculator server and send it the numbers.
         let s = fork!(move |s: SimpleCalcServer<i32>| {
-            calc_server(s)
+            simple_calc_server(s)
         });
-        let r = calc_client(x, y, s);
+        let r = simple_calc_client(x, y, s);
 
+        // Check if the server worked.
         assert!(r.is_some());
         assert_eq!(x.wrapping_add(y), r.unwrap());
     }
