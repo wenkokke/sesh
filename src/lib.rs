@@ -68,7 +68,9 @@ pub mod rv {
         (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
             let ($session_name, here) = <$session_type as $crate::rv::Session>::new();
             ::std::thread::spawn(move || {
-                $forked_process;
+                (move || -> Option<()> {
+                    $forked_process
+                })();
             });
             here
         }};
@@ -77,7 +79,7 @@ pub mod rv {
     pub type Offer<S1, S2> = Receive<Either<S1, S2>, End>;
     pub type Select<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-    pub fn offer<S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Option<R>
+    pub fn offer_either<S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Option<R>
     where
         F: FnOnce(S1) -> Option<R>,
         G: FnOnce(S2) -> Option<R>,
@@ -101,25 +103,25 @@ pub mod rv {
     #[macro_export]
     macro_rules! offer {
         ($session:expr, { $($pat:pat => $result:expr,)* }) => {
-            (|()| {
+            (move || -> Option<()> {
                 let (l, End) = receive($session)?;
                 match l {
                     $(
                         $pat => $result,
                     )*
-                };
-            })(());
+                }
+            })();
         };
     }
 
     #[macro_export]
     macro_rules! select {
         ($label:path, $session:expr) => {
-            (|()| {
+            (move || -> Option<_> {
                 let (here, there) = <_ as Session>::new();
                 let End = send($label(there), $session)?;
                 Some(here)
-            })(());
+            })();
         };
     }
 }
@@ -129,6 +131,7 @@ pub mod rv {
 mod tests {
     extern crate rand;
 
+    use std::marker;
     use rv::*;
     use self::rand::{Rng, thread_rng};
 
@@ -136,10 +139,16 @@ mod tests {
 
     #[test]
     fn ping_works() {
-        let s = fork!(move |s: Send<(), End>| {
-            send((), s)
-        });
-        receive(s);
+        assert!(|| -> Option<()> {
+
+            let s = fork!(move |s: Send<(), End>| {
+                let s = send((), s)?;
+                close(s)
+            });
+            let ((), s) = receive(s)?;
+            close(s)
+
+        }().is_some());
     }
 
     // Test a simple calculator server, implemented using binary choice.
@@ -153,46 +162,88 @@ mod tests {
     type SimpleCalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
     type SimpleCalcClient<N> = <SimpleCalcServer<N> as Session>::Dual;
 
-    fn simple_calc_server(s: SimpleCalcServer<i32>) -> Option<()> {
-        offer(s,
-              |s: NegServer<i32>| {
-                  let (x, s) = receive(s)?;
-                  let s = send(-x, s)?;
-                  close(s)
-              },
-              |s: AddServer<i32>| {
-                  let (x, s) = receive(s)?;
-                  let (y, s) = receive(s)?;
-                  let s = send(x.wrapping_add(y), s)?;
-                  close(s)
-              })
-    }
-
-    fn simple_calc_client(x: i32, y: i32, s: SimpleCalcClient<i32>) -> Option<i32> {
-        let s = select_right::<NegClient<i32>, _>(s)?;
-        let s = send(x, s)?;
-        let s = send(y, s)?;
-        let (z, End) = receive(s)?;
-        Some(z)
-    }
-
     #[test]
     fn simple_calc_works() {
+        assert!(|| -> Option<()> {
 
-        // Pick some random numbers.
-        let mut rng = thread_rng();
-        let x: i32 = rng.gen();
-        let y: i32 = rng.gen();
+            // Pick some random numbers.
+            let mut rng = thread_rng();
+            let x: i32 = rng.gen();
+            let y: i32 = rng.gen();
 
-        // Create a calculator server and send it the numbers.
-        let s = fork!(move |s: SimpleCalcServer<i32>| {
-            simple_calc_server(s)
-        });
-        let r = simple_calc_client(x, y, s);
+            // Create a calculator server and send it the numbers.
+            let s = fork!(move |s: SimpleCalcServer<i32>| {
+                offer_either(s,
+                      |s: NegServer<i32>| {
+                          let (x, s) = receive(s)?;
+                          let s = send(-x, s)?;
+                          close(s)
+                      },
+                      |s: AddServer<i32>| {
+                          let (x, s) = receive(s)?;
+                          let (y, s) = receive(s)?;
+                          let s = send(x.wrapping_add(y), s)?;
+                          close(s)
+                      })
 
-        // Check if the server worked.
-        assert!(r.is_some());
-        assert_eq!(x.wrapping_add(y), r.unwrap());
+            });
+
+            let s = select_right::<NegClient<i32>, _>(s)?;
+            let s = send(x, s)?;
+            let s = send(y, s)?;
+            let (z, End) = receive(s)?;
+
+            // Check if the server worked.
+            assert_eq!(x.wrapping_add(y), z);
+            Some(())
+
+        }().is_some());
+    }
+
+    // Test a nice calculator server, implemented using variant types.
+
+    enum Op<N: marker::Send> {
+        Neg(NegServer<N>),
+        Add(AddServer<N>),
+    }
+    type NiceCalcServer<N> = Receive<Op<N>, End>;
+    type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
+
+    #[test]
+    fn nice_server_works() {
+        assert!(|| -> Option<()> {
+
+            // Pick some random numbers.
+            let mut rng = thread_rng();
+            let x: i32 = rng.gen();
+            let y: i32 = rng.gen();
+
+            let s = fork!(move |s: NiceCalcServer<i32>| {
+                offer!(s, {
+                    Op::Neg(s) => {
+                        let (x, s) = receive(s)?;
+                        let s = send(-x, s)?;
+                        close(s)
+                    },
+                    Op::Add(s) => {
+                        let (x, s) = receive(s)?;
+                        let (y, s) = receive(s)?;
+                        let s = send(x.wrapping_add(y), s)?;
+                        close(s)
+                    },
+                })
+            });
+
+            let s = select!(Op::Add, s)?;
+            let s = send(x, s)?;
+            let s = send(y, s)?;
+            let (z, End) = receive(s)?;
+
+            // Check if the server worked.
+            assert_eq!(x.wrapping_add(y), z);
+            Some(())
+
+        }().is_some());
     }
 }
 
