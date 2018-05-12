@@ -1,12 +1,16 @@
+#![feature(fnbox)]
+
 extern crate either;
 
 #[macro_use]
 pub mod rv {
 
     use either::{Either};
+    use std::boxed::{FnBox};
     use std::marker;
     use std::sync::mpsc::{Sender, Receiver};
     use std::sync::mpsc;
+    use std::thread;
 
     pub struct End;
     pub struct Send<T, S: Session> {
@@ -63,43 +67,55 @@ pub mod rv {
         let End = session;
     }
 
-    pub fn select_left<S1: Session, S2: Session>(s: Select<S1, S2>) -> S1 {
-        let (here, there) = S1::new();
-        let End = send(Either::Left(there), s);
-        return here
-    }
-
-    pub fn select_right<S1: Session, S2: Session>(s: Select<S1, S2>) -> S2 {
-        let (here, there) = S2::new();
-        let End = send(Either::Right(there), s);
-        return here
-    }
-
-    pub fn offer<S1: Session, S2: Session, P1, P2, R>(s: Offer<S1, S2>, p1: P1, p2: P2) -> R
-    where
-        P1: FnOnce(S1) -> R,
-        P2: FnOnce(S2) -> R,
-    {
-        let (e, End) = receive(s);
-        match e {
-            Either::Left(s) => p1(s),
-            Either::Right(s) => p2(s),
-        }
-    }
-
     #[macro_export]
     macro_rules! fork {
         (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
-            let ($session_name, there) = <$session_type as $crate::rv::Session>::new();
+            let ($session_name, here) = <$session_type as $crate::rv::Session>::new();
             ::std::thread::spawn(move || {
                 $forked_process;
             });
-            there
+            here
         }};
+    }
+
+    #[macro_export]
+    macro_rules! select {
+        ($label:path, $session:expr) => {{
+            let (here, there) = <_ as Session>::new();
+            let End = send($label(there), $session);
+            return here
+        }};
+    }
+
+    pub fn select_left<S1: Session, S2: Session>(s: Select<S1, S2>) -> S1 {
+        select!(Either::Left, s)
+    }
+
+    pub fn select_right<S1: Session, S2: Session>(s: Select<S1, S2>) -> S2 {
+        select!(Either::Right, s)
+    }
+
+    #[macro_export]
+    macro_rules! offer {
+        ($session:expr, { $($pat:pat => $result:expr,)* }) => {{
+            let (l, End) = receive($session);
+            match l {
+                $($pat => $result,)*
+            }
+        }};
+    }
+
+    pub fn offer<S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> R
+    where F: FnOnce(S1) -> R, G: FnOnce(S2) -> R, {
+        offer!(s, {
+            Either::Left(s) => f(s),
+            Either::Right(s) => g(s),
+        })
     }
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     extern crate rand;
 
@@ -107,11 +123,11 @@ mod tests {
     use self::rand::{Rng, thread_rng};
 
     // Types for a calculator server and its client
-    type NegServer<N> = Receive<N, Send<N, End>>;
-    type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
+    type NegServer<N>  = Receive<N, Send<N, End>>;
+    type AddServer<N>  = Receive<N, Receive<N, Send<N, End>>>;
     type CalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
-    type NegClient<N> = <NegServer<N> as Session>::Dual;
-    type AddClient<N> = <AddServer<N> as Session>::Dual;
+    type NegClient<N>  = <NegServer<N> as Session>::Dual;
+    type AddClient<N>  = <AddServer<N> as Session>::Dual;
     type CalcClient<N> = <CalcServer<N> as Session>::Dual;
 
     #[test]
