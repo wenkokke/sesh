@@ -237,10 +237,12 @@ mod tests {
             let s = select!(Op::Add, s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
-            let (z, End) = receive(s)?;
+            let (z, s) = receive(s)?;
+            close(s);
 
-            // Check if the server worked.
+            // Check if the server worked correctly.
             assert_eq!(x.wrapping_add(y), z);
+
             Some(())
 
         }().is_some());
