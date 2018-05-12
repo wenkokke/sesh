@@ -1,28 +1,13 @@
-#![feature(fnbox)]
-
-extern crate either;
-
 #[macro_use]
 pub mod rv {
 
-    use either::{Either};
-    use std::boxed::{FnBox};
     use std::marker;
     use std::sync::mpsc::{Sender, Receiver};
     use std::sync::mpsc;
-    use std::thread;
 
     pub struct End;
-    pub struct Send<T, S: Session> {
-        channel: Sender<(T, S::Dual)>,
-    }
-    pub struct Receive<T, S: Session> {
-        channel: Receiver<(T, S)>,
-    }
-    pub type Offer<S1, S2> =
-        Receive<Either<S1, S2>, End>;
-    pub type Select<S1, S2> =
-        Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
+    pub struct Send<T, S: Session> {channel: Sender<(T, S::Dual)>,}
+    pub struct Receive<T, S: Session> {channel: Receiver<(T, S)>,}
 
     pub trait Session: marker::Sized + marker::Send {
         type Dual: Session<Dual=Self>;
@@ -79,23 +64,6 @@ pub mod rv {
     }
 
     #[macro_export]
-    macro_rules! select {
-        ($label:path, $session:expr) => {{
-            let (here, there) = <_ as Session>::new();
-            let End = send($label(there), $session);
-            here
-        }};
-    }
-
-    pub fn select_left<S1: Session, S2: Session>(s: Select<S1, S2>) -> S1 {
-        select!(Either::Left, s)
-    }
-
-    pub fn select_right<S1: Session, S2: Session>(s: Select<S1, S2>) -> S2 {
-        select!(Either::Right, s)
-    }
-
-    #[macro_export]
     macro_rules! offer {
         ($session:expr, { $($pat:pat => $result:expr,)* }) => {{
             let (l, End) = receive($session);
@@ -105,12 +73,13 @@ pub mod rv {
         }};
     }
 
-    pub fn offer<S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> R
-    where F: FnOnce(S1) -> R, G: FnOnce(S2) -> R, {
-        offer!(s, {
-            Either::Left(s) => f(s),
-            Either::Right(s) => g(s),
-        })
+    #[macro_export]
+    macro_rules! select {
+        ($label:path, $session:expr) => {{
+            let (here, there) = <_ as Session>::new();
+            let End = send($label(there), $session);
+            here
+        }};
     }
 }
 
