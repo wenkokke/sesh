@@ -83,7 +83,7 @@ pub mod rv {
         ($label:path, $session:expr) => {{
             let (here, there) = <_ as Session>::new();
             let End = send($label(there), $session);
-            return here
+            here
         }};
     }
 
@@ -119,32 +119,34 @@ pub mod rv {
 mod tests {
     extern crate rand;
 
+    use std::marker;
     use rv::*;
     use self::rand::{Rng, thread_rng};
 
     // Types for a calculator server and its client
-    type NegServer<N>  = Receive<N, Send<N, End>>;
-    type AddServer<N>  = Receive<N, Receive<N, Send<N, End>>>;
-    type CalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
-    type NegClient<N>  = <NegServer<N> as Session>::Dual;
-    type AddClient<N>  = <AddServer<N> as Session>::Dual;
+    enum Op<N: marker::Send> {
+        Neg(Receive<N, Send<N, End>>),
+        Add(Receive<N, Receive<N, Send<N, End>>>),
+    }
+    type CalcServer<N> = Receive<Op<N>, End>;
     type CalcClient<N> = <CalcServer<N> as Session>::Dual;
 
     #[test]
     fn calculator_server_works() {
 
-        // Fork our calculator server
+        // Create a calculator server
         let s: CalcClient<i32> = fork!(move |s: CalcServer<i32>| {
-            offer(s,
-                  |s| {
-                      let (x, s) = receive(s);
-                      let End = send(-x, s);
-                  },
-                  |s| {
-                      let (x, s) = receive(s);
-                      let (y, s) = receive(s);
-                      let End = send(x.wrapping_add(y), s);
-                  });
+            offer!(s, {
+                Op::Neg(s) => {
+                    let (x, s) = receive(s);
+                    let End = send(-x, s);
+                },
+                Op::Add(s) => {
+                    let (x, s) = receive(s);
+                    let (y, s) = receive(s);
+                    let End = send(x.wrapping_add(y), s);
+                },
+            })
         });
 
         // Pick some random numbers
@@ -153,7 +155,7 @@ mod tests {
         let y: i32 = rng.gen();
 
         // Send them to the calculator server
-        let s = select_right::<NegClient<i32>, _>(s);
+        let s = select!(Op::Add, s);
         let s = send(x, s);
         let s = send(y, s);
         let (z, End) = receive(s);
