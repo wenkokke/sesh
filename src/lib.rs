@@ -1,5 +1,4 @@
 extern crate either;
-extern crate void;
 
 use std::boxed::Box;
 use std::convert::From;
@@ -10,7 +9,6 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 
 use either::Either;
-use void::Void;
 
 
 /// The error types used.
@@ -139,8 +137,8 @@ pub fn close(s: End) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-pub fn cancel() -> Result<Void, Cancel> {
-    Err(Cancel)
+pub fn cancel<T>() -> Result<T, Box<Error>> {
+    Err(Box::new(Cancel))
 }
 
 #[macro_export]
