@@ -1,7 +1,7 @@
-#[macro_use]
 extern crate either;
+extern crate void;
 
-use either::Either;
+use std::boxed::Box;
 use std::convert::From;
 use std::error::Error;
 use std::fmt;
@@ -9,64 +9,81 @@ use std::marker;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 
-// Define custom error type for Rusty Variation
+use either::Either;
+use void::Void;
 
-pub enum RvError<T> {
-    Cancel,
-    SendError(mpsc::SendError<T>),
-    ReceiveError(mpsc::RecvError),
-}
 
-impl<T> fmt::Debug for RvError<T> {
+/// The error types used.
+
+#[derive(Debug)]
+pub struct Cancel;
+
+#[derive(Debug)]
+pub struct SendError<T>(mpsc::SendError<T>);
+
+#[derive(Debug)]
+pub struct ReceiveError(mpsc::RecvError);
+
+impl fmt::Display for Cancel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        "RvError(..)".fmt(f)
+        "canceling session".fmt(f)
     }
 }
 
-impl<T> fmt::Display for RvError<T> {
+impl<T> fmt::Display for SendError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            RvError::Cancel => write!(f, "acting on a cancelled channel"),
-            RvError::SendError(e) => e.fmt(f),
-            RvError::ReceiveError(e) => e.fmt(f),
-        }
+        self.0.fmt(f)
     }
 }
 
-impl<T: marker::Send> Error for RvError<T> {
-    fn description<'a>(&'a self) -> &'a str {
-        match self {
-            RvError::Cancel => "acting on a cancelled channel",
-            RvError::SendError(e) => e.description(),
-            RvError::ReceiveError(e) => e.description(),
-        }
+impl fmt::Display for ReceiveError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)
     }
+}
 
+impl Error for Cancel {
+    fn description(&self) -> &str {
+        "canceling session"
+    }
+}
+
+impl<T: fmt::Debug + marker::Send> Error for SendError<T> {
     fn cause(&self) -> Option<&Error> {
-        match self {
-            RvError::Cancel => None,
-            RvError::SendError(e) => Some(e),
-            RvError::ReceiveError(e) => Some(e),
-        }
+        Some(&self.0)
     }
 }
 
-impl<T: marker::Send> From<mpsc::SendError<T>> for RvError<T> {
+impl Error for ReceiveError {
+    fn cause(&self) -> Option<&Error> {
+        Some(&self.0)
+    }
+}
+
+impl<T> From<mpsc::SendError<T>> for SendError<T> {
     fn from(error: mpsc::SendError<T>) -> Self {
-        RvError::SendError(error)
+        SendError(error)
     }
 }
 
-impl<T> From<mpsc::RecvError> for RvError<T> {
+impl From<mpsc::RecvError> for ReceiveError {
     fn from(error: mpsc::RecvError) -> Self {
-        RvError::ReceiveError(error)
+        ReceiveError(error)
     }
 }
 
+
+/// The session types supported.
+
+#[derive(Debug)]
 pub struct End;
+
+#[derive(Debug)]
 pub struct Send<T, S: Session> {
     channel: Sender<(T, S::Dual)>,
 }
+
+#[derive(Debug)]
 pub struct Receive<T, S: Session> {
     channel: Receiver<(T, S)>,
 }
@@ -103,19 +120,27 @@ impl<T: marker::Send, S: Session> Session for Receive<T, S> {
     }
 }
 
-pub fn send<T: marker::Send, S: Session>(x: T, s: Send<T, S>) -> Option<S> {
+
+/// The communication primitives.
+
+pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>) -> Result<S, Box<Error + 'a>> {
     let (here, there) = S::new();
-    s.channel.send((x, there)).ok()?;
-    Some(here)
+    s.channel.send((x, there))?;
+    Ok(here)
 }
 
-pub fn receive<T: marker::Send, S: Session>(s: Receive<T, S>) -> Option<(T, S)> {
-    s.channel.recv().ok()
+pub fn receive<'a, T: marker::Send, S: Session>(s: Receive<T, S>) -> Result<(T, S), Box<Error + 'a>> {
+    let (v, s) = s.channel.recv()?;
+    Ok((v, s))
 }
 
-pub fn close(s: End) -> Option<()> {
+pub fn close(s: End) -> Result<(), Box<Error>> {
     let End = s;
-    Some(())
+    Ok(())
+}
+
+pub fn cancel() -> Result<Void, Cancel> {
+    Err(Cancel)
 }
 
 #[macro_export]
@@ -123,9 +148,9 @@ macro_rules! fork {
     (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
         let ($session_name, here) = <$session_type as $crate::Session>::new();
         ::std::thread::spawn(move || {
-            (move || -> Option<()> {
+            (move || -> Result<_, Box<Error>> {
                 $forked_process
-            })();
+            })().unwrap();
         });
         here
     }};
@@ -134,31 +159,33 @@ macro_rules! fork {
 pub type Offer<S1, S2> = Receive<Either<S1, S2>, End>;
 pub type Select<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-pub fn offer_either<S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Option<R>
+pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Result<R, Box<Error + 'a>>
 where
-    F: FnOnce(S1) -> Option<R>,
-    G: FnOnce(S2) -> Option<R>,
+    F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
+    G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
     let (e, End) = receive(s)?;
     e.either(f, g)
 }
 
-pub fn select_left<S1: Session, S2: Session>(s: Select<S1, S2>) -> Option<S1> {
+// SendError<(Either<S1::Dual, S2::Dual>, End)>
+pub fn select_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S1, Box<Error + 'a>> {
     let (here, there) = S1::new();
     let End = send(Either::Left(there), s)?;
-    Some(here)
+    Ok(here)
 }
 
-pub fn select_right<S1: Session, S2: Session>(s: Select<S1, S2>) -> Option<S2> {
+// SendError<(Either<S1::Dual, S2::Dual>, End)>
+pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S2, Box<Error + 'a>> {
     let (here, there) = S2::new();
     let End = send(Either::Right(there), s)?;
-    Some(here)
+    Ok(here)
 }
 
 #[macro_export]
 macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
-        (move || -> Option<()> {
+        (move || -> Result<_, _> {
             let (l, End) = receive($session)?;
             match l {
                 $(
@@ -172,10 +199,10 @@ macro_rules! offer {
 #[macro_export]
 macro_rules! select {
     ($label:path, $session:expr) => {
-        (move || -> Option<_> {
+        (move || -> Result<_, Box<Error>> {
             let (here, there) = <_ as Session>::new();
             let End = send($label(there), $session)?;
-            Some(here)
+            Ok(here)
         })();
     };
 }
@@ -193,7 +220,7 @@ mod tests {
 
     #[test]
     fn ping_works() {
-        assert!(|| -> Option<()> {
+        assert!(|| -> Result<(), Box<Error>> {
 
             let s = fork!(move |s: Send<(), End>| {
                 let s = send((), s)?;
@@ -202,7 +229,7 @@ mod tests {
             let ((), s) = receive(s)?;
             close(s)
 
-        }().is_some());
+        }().is_ok());
     }
 
     // Test a simple calculator server, implemented using binary choice.
@@ -218,7 +245,7 @@ mod tests {
 
     #[test]
     fn simple_calc_works() {
-        assert!(|| -> Option<()> {
+        assert!(|| -> Result<(), Box<Error>> {
 
             // Pick some random numbers.
             let mut rng = thread_rng();
@@ -249,9 +276,9 @@ mod tests {
 
             // Check if the server worked.
             assert_eq!(x.wrapping_add(y), z);
-            Some(())
+            Ok(())
 
-        }().is_some());
+        }().is_ok());
     }
 
     // Test a nice calculator server, implemented using variant types.
@@ -265,7 +292,7 @@ mod tests {
 
     #[test]
     fn nice_server_works() {
-        assert!(|| -> Option<()> {
+        assert!(|| -> Result<(), Box<Error>> {
 
             // Pick some random numbers.
             let mut rng = thread_rng();
@@ -292,15 +319,16 @@ mod tests {
             let s = send(x, s)?;
             let s = send(y, s)?;
             let (z, s) = receive(s)?;
-            close(s);
+            close(s)?;
 
             // Check if the server worked correctly.
             assert_eq!(x.wrapping_add(y), z);
 
-            Some(())
+            Ok(())
 
-        }().is_some());
+        }().is_ok());
     }
+
 }
 
 // */
