@@ -166,14 +166,12 @@ where
     e.either(f, g)
 }
 
-// SendError<(Either<S1::Dual, S2::Dual>, End)>
 pub fn select_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S1, Box<Error + 'a>> {
     let (here, there) = S1::new();
     let End = send(Either::Left(there), s)?;
     Ok(here)
 }
 
-// SendError<(Either<S1::Dual, S2::Dual>, End)>
 pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S2, Box<Error + 'a>> {
     let (here, there) = S2::new();
     let End = send(Either::Right(there), s)?;
@@ -190,7 +188,7 @@ macro_rules! offer {
                     $pat => $result,
                 )*
             }
-        })();
+        })()
     };
 }
 
@@ -201,12 +199,11 @@ macro_rules! select {
             let (here, there) = <_ as Session>::new();
             let End = send($label(there), $session)?;
             Ok(here)
-        })();
+        })()
     };
 }
 
 #[cfg(test)]
-#[allow(dead_code)]
 mod tests {
     extern crate rand;
 
