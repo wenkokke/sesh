@@ -9,8 +9,9 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use either::Either;
 
-
 /// The error types used.
+
+static CANCEL_MESSAGE: &'static str = "session cancelled";
 
 #[derive(Debug)]
 pub struct Cancel;
@@ -23,7 +24,7 @@ pub struct ReceiveError(mpsc::RecvError);
 
 impl fmt::Display for Cancel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        "canceling session".fmt(f)
+        CANCEL_MESSAGE.fmt(f)
     }
 }
 
@@ -41,7 +42,7 @@ impl fmt::Display for ReceiveError {
 
 impl Error for Cancel {
     fn description(&self) -> &str {
-        "canceling session"
+        CANCEL_MESSAGE
     }
 }
 
@@ -145,9 +146,13 @@ macro_rules! fork {
     (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
         let ($session_name, here) = <$session_type as $crate::Session>::new();
         ::std::thread::spawn(move || {
-            (move || -> Result<_, Box<Error>> {
+            let r = (move || -> Result<_, Box<Error>> {
                 $forked_process
-            })().unwrap();
+            })();
+            match r {
+                Ok(_) => (),
+                Err(e) => panic!("{}", e.description()),
+            }
         });
         here
     }};
@@ -349,7 +354,7 @@ mod tests {
 
     #[test]
     fn cancel_works() {
-        assert!(|| -> Result<(), Box<Error>> {
+        let r = || -> Result<(), Box<Error>> {
 
             // Pick some random numbers.
             let mut rng = thread_rng();
@@ -372,7 +377,8 @@ mod tests {
 
             Ok(())
 
-        }().is_err());
+        }();
+        assert!(r.is_err());
     }
 }
 
