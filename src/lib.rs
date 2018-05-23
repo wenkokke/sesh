@@ -7,7 +7,6 @@ use std::fmt;
 use std::marker;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
-
 use either::Either;
 
 
@@ -208,6 +207,7 @@ mod tests {
     extern crate rand;
 
     use std::marker;
+    use std::mem;
     use super::*;
     use self::rand::{Rng, thread_rng};
 
@@ -238,39 +238,49 @@ mod tests {
     type SimpleCalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
     type SimpleCalcClient<N> = <SimpleCalcServer<N> as Session>::Dual;
 
+    fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
+        offer_either(s,
+                     |s: NegServer<i32>| {
+                         let (x, s) = receive(s)?;
+                         let s = send(-x, s)?;
+                         close(s)
+                     },
+                     |s: AddServer<i32>| {
+                         let (x, s) = receive(s)?;
+                         let (y, s) = receive(s)?;
+                         let s = send(x.wrapping_add(y), s)?;
+                         close(s)
+                     })
+    }
+
     #[test]
     fn simple_calc_works() {
         assert!(|| -> Result<(), Box<Error>> {
 
-            // Pick some random numbers.
             let mut rng = thread_rng();
-            let x: i32 = rng.gen();
-            let y: i32 = rng.gen();
 
-            // Create a calculator server and send it the numbers.
-            let s = fork!(move |s: SimpleCalcServer<i32>| {
-                offer_either(s,
-                      |s: NegServer<i32>| {
-                          let (x, s) = receive(s)?;
-                          let s = send(-x, s)?;
-                          close(s)
-                      },
-                      |s: AddServer<i32>| {
-                          let (x, s) = receive(s)?;
-                          let (y, s) = receive(s)?;
-                          let s = send(x.wrapping_add(y), s)?;
-                          close(s)
-                      })
+            // Test the negation function.
+            {
+                let s: SimpleCalcClient<i32> = fork!(move |s: SimpleCalcServer<i32>| {simple_calc_server(s)});
+                let x: i32 = rng.gen();
+                let s = select_left::<_, AddClient<i32>>(s)?;
+                let s = send(x, s)?;
+                let (y, End) = receive(s)?;
+                assert_eq!(-x, y);
+            }
 
-            });
+            // Test the addition function.
+            {
+                let s: SimpleCalcClient<i32> = fork!(move |s: SimpleCalcServer<i32>| {simple_calc_server(s)});
+                let x: i32 = rng.gen();
+                let y: i32 = rng.gen();
+                let s = select_right::<NegClient<i32>, _>(s)?;
+                let s = send(x, s)?;
+                let s = send(y, s)?;
+                let (z, End) = receive(s)?;
+                assert_eq!(x.wrapping_add(y), z);
+            }
 
-            let s = select_right::<NegClient<i32>, _>(s)?;
-            let s = send(x, s)?;
-            let s = send(y, s)?;
-            let (z, End) = receive(s)?;
-
-            // Check if the server worked.
-            assert_eq!(x.wrapping_add(y), z);
             Ok(())
 
         }().is_ok());
@@ -285,8 +295,60 @@ mod tests {
     type NiceCalcServer<N> = Receive<Op<N>, End>;
     type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
 
+    fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
+        offer!(s, {
+            Op::Neg(s) => {
+                let (x, s) = receive(s)?;
+                let s = send(-x, s)?;
+                close(s)
+            },
+            Op::Add(s) => {
+                let (x, s) = receive(s)?;
+                let (y, s) = receive(s)?;
+                let s = send(x.wrapping_add(y), s)?;
+                close(s)
+            },
+        })
+    }
+
     #[test]
-    fn nice_server_works() {
+    fn nice_calc_works() {
+        assert!(|| -> Result<(), Box<Error>> {
+
+            // Pick some random numbers.
+            let mut rng = thread_rng();
+
+            // Test the negation function.
+            {
+                let s: NiceCalcClient<i32> = fork!(move |s: NiceCalcServer<i32>| {nice_calc_server(s)});
+                let x: i32 = rng.gen();
+                let s = select!(Op::Neg, s)?;
+                let s = send(x, s)?;
+                let (y, s) = receive(s)?;
+                close(s)?;
+                assert_eq!(-x, y);
+            }
+
+            // Test the addition function.
+            {
+                let s: NiceCalcClient<i32> = fork!(move |s: NiceCalcServer<i32>| {nice_calc_server(s)});
+                let x: i32 = rng.gen();
+                let y: i32 = rng.gen();
+                let s = select!(Op::Add, s)?;
+                let s = send(x, s)?;
+                let s = send(y, s)?;
+                let (z, s) = receive(s)?;
+                close(s)?;
+                assert_eq!(x.wrapping_add(y), z);
+            }
+
+            Ok(())
+
+        }().is_ok());
+    }
+
+    #[test]
+    fn cancel_works() {
         assert!(|| -> Result<(), Box<Error>> {
 
             // Pick some random numbers.
@@ -295,19 +357,8 @@ mod tests {
             let y: i32 = rng.gen();
 
             let s = fork!(move |s: NiceCalcServer<i32>| {
-                offer!(s, {
-                    Op::Neg(s) => {
-                        let (x, s) = receive(s)?;
-                        let s = send(-x, s)?;
-                        close(s)
-                    },
-                    Op::Add(s) => {
-                        let (x, s) = receive(s)?;
-                        let (y, s) = receive(s)?;
-                        let s = send(x.wrapping_add(y), s)?;
-                        close(s)
-                    },
-                })
+                mem::drop(s);
+                cancel::<()>()
             });
 
             let s = select!(Op::Add, s)?;
@@ -321,9 +372,8 @@ mod tests {
 
             Ok(())
 
-        }().is_ok());
+        }().is_err());
     }
-
 }
 
 // */
