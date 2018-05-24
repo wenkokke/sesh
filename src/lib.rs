@@ -143,6 +143,21 @@ pub fn cancel<T>() -> Result<T, Box<Error>> {
 
 #[macro_export]
 macro_rules! fork {
+
+    // Syntax `fork!(nice_calc_server)`
+    ($fn_name:ident) => {{
+        let (there, here) = $crate::Session::new();
+        ::std::thread::spawn(move || {
+            let r = $fn_name(there);
+            match r {
+                Ok(_) => (),
+                Err(e) => panic!("{}", e.description()),
+            }
+        });
+        here
+    }};
+
+    // Syntax `fork!(move |s: NiceCalcServer<i32>| { ... })`
     (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
         let ($session_name, here) = <$session_type as $crate::Session>::new();
         ::std::thread::spawn(move || {
@@ -266,7 +281,7 @@ mod tests {
 
             // Test the negation function.
             {
-                let s: SimpleCalcClient<i32> = fork!(move |s: SimpleCalcServer<i32>| {simple_calc_server(s)});
+                let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
                 let x: i32 = rng.gen();
                 let s = select_left::<_, AddClient<i32>>(s)?;
                 let s = send(x, s)?;
@@ -276,7 +291,7 @@ mod tests {
 
             // Test the addition function.
             {
-                let s: SimpleCalcClient<i32> = fork!(move |s: SimpleCalcServer<i32>| {simple_calc_server(s)});
+                let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
                 let s = select_right::<NegClient<i32>, _>(s)?;
@@ -325,7 +340,7 @@ mod tests {
 
             // Test the negation function.
             {
-                let s: NiceCalcClient<i32> = fork!(move |s: NiceCalcServer<i32>| {nice_calc_server(s)});
+                let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
                 let s = select!(Op::Neg, s)?;
                 let s = send(x, s)?;
@@ -336,7 +351,7 @@ mod tests {
 
             // Test the addition function.
             {
-                let s: NiceCalcClient<i32> = fork!(move |s: NiceCalcServer<i32>| {nice_calc_server(s)});
+                let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
                 let s = select!(Op::Add, s)?;
