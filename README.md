@@ -10,7 +10,7 @@ A library for deadlock-free session-typed channels in Rust.
   type NiceCalcServer<N> = Receive<Op<N>, End>;
   type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
   
-  assert!(|| -> Result<(), Box<Error>> {
+  fn nice_calc_server() -> Result<i32, Box<Error>> {
   
       // Pick some random numbers.
       let mut rng = thread_rng();
@@ -43,10 +43,6 @@ A library for deadlock-free session-typed channels in Rust.
       let (z, s) = receive(s)?;
       close(s)?;
       
-      // Check the answer.
-      assert_eq!(x.wrapping_add(y), z);
-  
-      Ok(())
-  
-  }().is_ok());
+      Ok(z)
+  }
 ```
