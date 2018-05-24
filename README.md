@@ -4,7 +4,7 @@ A library for deadlock-free session-typed channels in Rust.
 
 ```rust
 use rv::*;
-  
+
 type NegServer<N> = Receive<N, Send<N, End>>;
 type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
 enum Op<N: marker::Send> {
@@ -54,6 +54,6 @@ fn nice_calc_works() {
         
         Ok(())
 
-    });
+    }().is_ok());
 }
 ```
