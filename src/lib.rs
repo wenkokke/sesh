@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn cancel_works() {
-        let r = || -> Result<(), Box<Error>> {
+        assert!(|| -> Result<(), Box<Error>> {
 
             // Pick some random numbers.
             let mut rng = thread_rng();
@@ -377,8 +377,7 @@ mod tests {
 
             Ok(())
 
-        }();
-        assert!(r.is_err());
+        }().is_err());
     }
 }
 
