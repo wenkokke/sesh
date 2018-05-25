@@ -128,26 +128,26 @@ pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-#[macro_export]
-macro_rules! fork {
+#[allow(unused_macros)]
+macro_rules! fork_with_thread_id {
 
-    // Syntax `fork!(nice_calc_server)`
+    // Syntax `fork_with_thread_id!(nice_calc_server)`
     ($fn_name:ident) => {{
         let (there, here) = $crate::Session::new();
-        ::std::thread::spawn(move || {
+        let other_thread = ::std::thread::spawn(move || {
             let r = $fn_name(there);
             match r {
                 Ok(_) => (),
                 Err(e) => panic!("{}", e.description()),
             }
         });
-        here
+        (other_thread, here)
     }};
 
-    // Syntax `fork!(move |s: NiceCalcServer<i32>| { ... })`
+    // Syntax `fork_with_thread_id!(move |s: NiceCalcServer<i32>| { ... })`
     (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
         let ($session_name, here) = <$session_type as $crate::Session>::new();
-        ::std::thread::spawn(move || {
+        let other_thread = ::std::thread::spawn(move || {
             let r = (move || -> Result<_, Box<Error>> {
                 $forked_process
             })();
@@ -156,8 +156,23 @@ macro_rules! fork {
                 Err(e) => panic!("{}", e.description()),
             }
         });
-        here
+        (other_thread, here)
     }};
+}
+
+
+#[macro_export]
+macro_rules! fork {
+
+    // Syntax `fork!(nice_calc_server)`
+    ($fn_name:ident) => {
+        fork_with_thread_id!($fn_name).1
+    };
+
+    // Syntax `fork!(move |s: NiceCalcServer<i32>| { ... })`
+    (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {
+        fork_with_thread_id!(move | $session_name : $session_type | $forked_process ).1
+    };
 }
 
 pub type Offer<S1, S2> = Receive<Either<S1, S2>, End>;
@@ -354,30 +369,49 @@ mod tests {
     }
 
     #[test]
-    fn cancel_works() {
+    fn cancel_send_works() {
+
+        let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+
         assert!(|| -> Result<(), Box<Error>> {
 
-            // Pick some random numbers.
-            let mut rng = thread_rng();
-            let x: i32 = rng.gen();
-            let y: i32 = rng.gen();
+            cancel(s)?;
 
-            let s = fork!(move |s: NiceCalcServer<i32>| {
-                cancel(s)
-            });
+            Ok(())
+
+        }().is_ok());
+
+        let r = other_thread.join();
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn cancel_receive_works() {
+
+        // Pick some random numbers.
+        let mut rng = thread_rng();
+        let x: i32 = rng.gen();
+        let y: i32 = rng.gen();
+
+        let (other_thread, s) = fork_with_thread_id!(move |s: NiceCalcServer<i32>| {
+            cancel(s)
+        });
+
+        assert!(|| -> Result<(), Box<Error>> {
 
             let s = select!(Op::Add, s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
             let (z, s) = receive(s)?;
             close(s)?;
-
-            // Check if the server worked correctly.
             assert_eq!(x.wrapping_add(y), z);
 
             Ok(())
 
         }().is_err());
+
+        let r = other_thread.join();
+        assert!(r.is_ok());
     }
 }
 
