@@ -5,28 +5,18 @@ use std::convert::From;
 use std::error::Error;
 use std::fmt;
 use std::marker;
+use std::mem;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use either::Either;
 
 /// The error types used.
 
-static CANCEL_MESSAGE: &'static str = "session cancelled";
-
-#[derive(Debug)]
-pub struct Cancel;
-
 #[derive(Debug)]
 pub struct SendError<T>(mpsc::SendError<T>);
 
 #[derive(Debug)]
 pub struct ReceiveError(mpsc::RecvError);
-
-impl fmt::Display for Cancel {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        CANCEL_MESSAGE.fmt(f)
-    }
-}
 
 impl<T> fmt::Display for SendError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -37,12 +27,6 @@ impl<T> fmt::Display for SendError<T> {
 impl fmt::Display for ReceiveError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(f)
-    }
-}
-
-impl Error for Cancel {
-    fn description(&self) -> &str {
-        CANCEL_MESSAGE
     }
 }
 
@@ -76,11 +60,13 @@ impl From<mpsc::RecvError> for ReceiveError {
 #[derive(Debug)]
 pub struct End;
 
+#[must_use]
 #[derive(Debug)]
 pub struct Send<T, S: Session> {
     channel: Sender<(T, S::Dual)>,
 }
 
+#[must_use]
 #[derive(Debug)]
 pub struct Receive<T, S: Session> {
     channel: Receiver<(T, S)>,
@@ -137,8 +123,9 @@ pub fn close(s: End) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-pub fn cancel<T>() -> Result<T, Box<Error>> {
-    Err(Box::new(Cancel))
+pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
+    mem::drop(x);
+    Ok(())
 }
 
 #[macro_export]
@@ -227,7 +214,6 @@ mod tests {
     extern crate rand;
 
     use std::marker;
-    use std::mem;
     use super::*;
     use self::rand::{Rng, thread_rng};
 
@@ -377,8 +363,7 @@ mod tests {
             let y: i32 = rng.gen();
 
             let s = fork!(move |s: NiceCalcServer<i32>| {
-                mem::drop(s);
-                cancel::<()>()
+                cancel(s)
             });
 
             let s = select!(Op::Add, s)?;
