@@ -5,4 +5,6 @@ authors = ["Wen Kokke <wen.kokke@gmail.com>"]
 
 [dependencies]
 either = "1.5.0"
+
+[dev-dependencies]
 rand = "0.5.0-pre.1"
