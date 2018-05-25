@@ -128,7 +128,7 @@ pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-#[allow(unused_macros)]
+#[macro_export]
 macro_rules! fork_with_thread_id {
 
     // Syntax `fork_with_thread_id!(nice_calc_server)`
