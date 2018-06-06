@@ -1,59 +1,12 @@
 extern crate either;
 
 use std::boxed::Box;
-use std::convert::From;
 use std::error::Error;
-use std::fmt;
 use std::marker;
 use std::mem;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use either::Either;
-
-/// The error types used.
-
-#[derive(Debug)]
-pub struct SendError<T>(mpsc::SendError<T>);
-
-#[derive(Debug)]
-pub struct ReceiveError(mpsc::RecvError);
-
-impl<T> fmt::Display for SendError<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl fmt::Display for ReceiveError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl<T: fmt::Debug + marker::Send> Error for SendError<T> {
-    fn cause(&self) -> Option<&Error> {
-        Some(&self.0)
-    }
-}
-
-impl Error for ReceiveError {
-    fn cause(&self) -> Option<&Error> {
-        Some(&self.0)
-    }
-}
-
-impl<T> From<mpsc::SendError<T>> for SendError<T> {
-    fn from(error: mpsc::SendError<T>) -> Self {
-        SendError(error)
-    }
-}
-
-impl From<mpsc::RecvError> for ReceiveError {
-    fn from(error: mpsc::RecvError) -> Self {
-        ReceiveError(error)
-    }
-}
-
 
 /// The session types supported.
 
@@ -381,8 +334,7 @@ mod tests {
 
         }().is_ok());
 
-        let r = other_thread.join();
-        assert!(r.is_err());
+        assert!(other_thread.join().is_err());
     }
 
     #[test]
@@ -393,9 +345,8 @@ mod tests {
         let x: i32 = rng.gen();
         let y: i32 = rng.gen();
 
-        let (other_thread, s) = fork_with_thread_id!(move |s: NiceCalcServer<i32>| {
-            cancel(s)
-        });
+        let (other_thread, s) = fork_with_thread_id!(
+            move |s: NiceCalcServer<i32>| {cancel(s)});
 
         assert!(|| -> Result<(), Box<Error>> {
 
@@ -405,13 +356,53 @@ mod tests {
             let (z, s) = receive(s)?;
             close(s)?;
             assert_eq!(x.wrapping_add(y), z);
-
             Ok(())
 
         }().is_err());
 
-        let r = other_thread.join();
-        assert!(r.is_ok());
+        assert!(other_thread.join().is_ok());
+    }
+
+    #[test]
+    fn delegation_works() {
+        let (other_thread1, s) = fork_with_thread_id!(nice_calc_server);
+        let (other_thread2, u) = fork_with_thread_id!(
+            move |u: Receive<NiceCalcClient<i32>, End>| {cancel(u)});
+
+        assert!(|| -> Result<(), Box<Error>> {
+
+            let u = send(s, u)?;
+            close(u)?;
+            Ok(())
+
+        }().is_ok());
+
+        assert!(other_thread1.join().is_err());
+        assert!(other_thread2.join().is_ok());
+    }
+
+    #[test]
+    fn closure_works() {
+        let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+
+        assert!(|| -> Result<i32, Box<Error>> {
+
+            // Create a closure which uses the session.
+            let f = move |x: i32| -> Result<i32, Box<Error>> {
+                let s = select!(Op::Neg, s)?;
+                let s = send(x, s)?;
+                let (y, s) = receive(s)?;
+                close(s)?;
+                Ok(y)
+            };
+
+            // Let the closure go out of scope.
+            Err(Box::new(mpsc::RecvError))?;
+            f(5)
+
+        }().is_err());
+
+        assert!(other_thread.join().is_err());
     }
 }
 
