@@ -60,13 +60,15 @@ impl<T: marker::Send, S: Session> Session for Receive<T, S> {
 
 /// The communication primitives.
 
-pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>) -> Result<S, Box<Error + 'a>> {
+pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>)
+                                                       -> Result<S, Box<Error + 'a>> {
     let (here, there) = S::new();
     s.channel.send((x, there))?;
     Ok(here)
 }
 
-pub fn receive<'a, T: marker::Send, S: Session>(s: Receive<T, S>) -> Result<(T, S), Box<Error + 'a>> {
+pub fn receive<'a, T: marker::Send, S: Session>(s: Receive<T, S>)
+                                                -> Result<(T, S), Box<Error + 'a>> {
     let (v, s) = s.channel.recv()?;
     Ok((v, s))
 }
@@ -131,7 +133,8 @@ macro_rules! fork {
 pub type Offer<S1, S2> = Receive<Either<S1, S2>, End>;
 pub type Select<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Result<R, Box<Error + 'a>>
+pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
+                                                           -> Result<R, Box<Error + 'a>>
 where
     F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
@@ -140,13 +143,15 @@ where
     e.either(f, g)
 }
 
-pub fn select_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S1, Box<Error + 'a>> {
+pub fn select_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>)
+                                                           -> Result<S1, Box<Error + 'a>> {
     let (here, there) = S1::new();
     let End = send(Either::Left(there), s)?;
     Ok(here)
 }
 
-pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>) -> Result<S2, Box<Error + 'a>> {
+pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>)
+                                                            -> Result<S2, Box<Error + 'a>> {
     let (here, there) = S2::new();
     let End = send(Either::Right(there), s)?;
     Ok(here)
@@ -262,21 +267,21 @@ mod tests {
 
     // Test a nice calculator server, implemented using variant types.
 
-    enum Op<N: marker::Send> {
+    enum CalcOp<N: marker::Send> {
         Neg(NegServer<N>),
         Add(AddServer<N>),
     }
-    type NiceCalcServer<N> = Receive<Op<N>, End>;
+    type NiceCalcServer<N> = Receive<CalcOp<N>, End>;
     type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
 
     fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
         offer!(s, {
-            Op::Neg(s) => {
+            CalcOp::Neg(s) => {
                 let (x, s) = receive(s)?;
                 let s = send(-x, s)?;
                 close(s)
             },
-            Op::Add(s) => {
+            CalcOp::Add(s) => {
                 let (x, s) = receive(s)?;
                 let (y, s) = receive(s)?;
                 let s = send(x.wrapping_add(y), s)?;
@@ -296,7 +301,7 @@ mod tests {
             {
                 let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
-                let s = select!(Op::Neg, s)?;
+                let s = select!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
                 let (y, s) = receive(s)?;
                 close(s)?;
@@ -308,7 +313,7 @@ mod tests {
                 let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
-                let s = select!(Op::Add, s)?;
+                let s = select!(CalcOp::Add, s)?;
                 let s = send(x, s)?;
                 let s = send(y, s)?;
                 let (z, s) = receive(s)?;
@@ -329,7 +334,6 @@ mod tests {
         assert!(|| -> Result<(), Box<Error>> {
 
             cancel(s)?;
-
             Ok(())
 
         }().is_ok());
@@ -350,7 +354,7 @@ mod tests {
 
         assert!(|| -> Result<(), Box<Error>> {
 
-            let s = select!(Op::Add, s)?;
+            let s = select!(CalcOp::Add, s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
             let (z, s) = receive(s)?;
@@ -389,7 +393,7 @@ mod tests {
 
             // Create a closure which uses the session.
             let f = move |x: i32| -> Result<i32, Box<Error>> {
-                let s = select!(Op::Neg, s)?;
+                let s = select!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
                 let (y, s) = receive(s)?;
                 close(s)?;
@@ -403,6 +407,68 @@ mod tests {
         }().is_err());
 
         assert!(other_thread.join().is_err());
+    }
+
+    enum SumOp<N: marker::Send> {
+        More(Receive<N, NiceSumServer<N>>),
+        Done(Send<N, End>),
+    }
+    type NiceSumServer<N> = Receive<SumOp<N>, End>;
+    type NiceSumClient<N> = <NiceSumServer<N> as Session>::Dual;
+
+    fn nice_sum_server(s: NiceSumServer<i32>) -> Result<(), Box<Error>> {
+        nice_sum_server_accum(s, 0)
+    }
+
+    fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>> {
+        offer!(s, {
+            SumOp::More(s) => {
+                let (y, s) = receive(s)?;
+                nice_sum_server_accum(s, x.wrapping_add(y))
+            },
+            SumOp::Done(s) => {
+                let s = send(x, s)?;
+                close(s)
+            },
+        })
+    }
+
+    fn nice_sum_client_accum(s: NiceSumClient<i32>, mut xs: Vec<i32>)
+                             -> Result<i32, Box<Error>> {
+        match xs.pop() {
+            Option::Some(x) => {
+                let s = select!(SumOp::More, s)?;
+                let s = send(x, s)?;
+                nice_sum_client_accum(s, xs)
+            },
+            Option::None => {
+                let s = select!(SumOp::Done, s)?;
+                let (sum, s) = receive(s)?;
+                close(s)?;
+                Ok(sum)
+            },
+        }
+    }
+
+    #[test]
+    fn recursion_works() {
+
+        // Pick some random numbers.
+        let mut rng = thread_rng();
+        let xs: Vec<i32> = (1..100).map(|_| rng.gen()).collect();
+        let sum1: i32 = xs.iter().fold(0, |sum, &x| sum.wrapping_add(x));
+
+        let (other_thread, s) = fork_with_thread_id!(nice_sum_server);
+
+        assert!(|| -> Result<(), Box<Error>> {
+
+            let sum2 = nice_sum_client_accum(s, xs)?;
+            assert_eq!(sum1, sum2);
+            Ok(())
+
+        }().is_ok());
+
+        assert!(other_thread.join().is_ok());
     }
 }
 
