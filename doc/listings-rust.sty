@@ -1,0 +1,61 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{listings-rust}[2018/01/23 Custom Package]
+
+\RequirePackage{color}
+\RequirePackage{listings}
+
+\lstdefinelanguage{Rust}{%
+  sensitive%
+, morecomment=[l]{//}%
+, morecomment=[s]{/*}{*/}%
+, moredelim=[s][{\itshape\color[rgb]{0,0,0.75}}]{\#[}{]}%
+, morestring=[b]{"}%
+, alsodigit={}%
+, alsoother={}%
+, alsoletter={!}%
+%
+% [1] reserve keywords
+% [2] traits
+% [3] primitive types
+% [4] type and value constructors
+% [5] identifier
+%
+, morekeywords=[1]{fn, type, enum} 
+, morekeywords=[2]{}
+, morekeywords=[3]{i32}
+, morekeywords=[4]{Result, Ok, Err, Send, Receive, End, Neg, Add}
+, morekeywords=[5]{assert!, assert_eq!, select!, offer!, fork!, send, receive, close}
+}
+
+\lstdefinestyle{colouredRust}%
+{ basicstyle=\ttfamily%
+, identifierstyle=%
+, commentstyle=\color[gray]{0.4}%
+, stringstyle=\color[rgb]{0, 0, 0.5}%
+, keywordstyle=\bfseries% reserved keywords
+, keywordstyle=[2]\color[rgb]{0.75, 0, 0}% traits
+, keywordstyle=[3]\color[rgb]{0, 0.5, 0}% primitive types
+, keywordstyle=[4]\color[rgb]{0, 0.5, 0}% type and value constructors
+, keywordstyle=[5]\color[rgb]{0, 0, 0.75}% macros
+, columns=spaceflexible%
+, keepspaces=true%
+, showspaces=false%
+, showtabs=false%
+, showstringspaces=true%
+}%
+
+\lstdefinestyle{boxed}{
+  style=colouredRust%
+, numbers=left%
+, firstnumber=auto%
+, numberblanklines=true%
+, frame=trbL%
+, numberstyle=\tiny%
+, frame=leftline%
+, numbersep=7pt%
+, framesep=5pt%
+, framerule=10pt%
+, xleftmargin=15pt%
+, backgroundcolor=\color[gray]{0.97}%
+, rulecolor=\color[gray]{0.90}%
+}

@@ -1,5 +1,6 @@
 \documentclass[a4paper,parskip=never,UKenglish]{scrartcl}
 \input{preamble}
+\addbibresource{main.bib}
 \title{Rusty Variation}
 \subtitle{Affine Session Types for Rust}
 \author{%
@@ -10,7 +11,7 @@
   LFCS, University of Edinburgh\protect\\
   Informatics Forum, 10 Crichton St, Edinburgh EH8 9AB, UK\protect\\
   \email{wen.kokke@ed.ac.uk}}
-\date{June 16, 2018}
+\date{}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -21,9 +22,61 @@
 
 \section{Background and Related Work}
 \subsection{Session Types for Rust}
+\textcite{jespersen2015}
+
 \subsection{Exceptional GV}
+\textcite{fowler2018}
 
 \section{Approach and Uniqueness}
+\begin{lstlisting}[language=Rust, style=boxed]
+  use std::marker;
+  use rusty_variation::*;
+
+  type NegServer  = Receive<i32, Send<i32, End>>;
+  type AddServer  = Receive<i32, Receive<i32, Send<i32, End>>>;
+  type CalcServer = Receive<CalcOp, End>;
+  enum CalcOp { Neg(NegServer), Add(AddServer) }
+  
+  #[test]
+  fn calc_server_works() {  
+    assert!(|| -> Result<i32, Box<Error>> {
+      
+      // Fork a calculator server.
+      let s = fork!(move |s: CalcServer| {
+        offer!(s, {
+          CalcOp::Neg(s) => {
+            let (x, s) = receive(s)?;
+            let s = send(-x, s)?;
+            close(s)
+          },
+          CalcOp::Add(s) => {
+            let (x, s) = receive(s)?;
+            let (y, s) = receive(s)?;
+            let s = send(x + y, s)?;
+            close(s)
+          },
+        })
+      });
+         
+      // Send it the numbers. 
+      let s = select!(CalcOp::Add, s)?;
+      let s = send(4, s)?;
+      let s = send(5, s)?;
+        
+      // Receive the answer and close the channel.
+      let (z, s) = receive(s)?;
+      close(s)?;
+        
+      // Check the answer.
+      assert_eq!(z, 9);
+        
+      Ok(())
+
+  }().is_ok());  
+\end{lstlisting}
 
 \section{Results and Contributions}
+
+\clearpage
+\printbibliography
 \end{document}
