@@ -28,6 +28,7 @@ pub struct Receive<T, S: Session> {
 pub trait Session: marker::Sized + marker::Send {
     type Dual: Session<Dual=Self>;
 
+    #[doc(hidden)]
     fn new() -> (Self, Self::Dual);
 }
 
@@ -471,17 +472,53 @@ mod tests {
         assert!(other_thread.join().is_ok());
     }
 
-    fn do_not_run_loops_exist() {
+    #[allow(dead_code)]
+    fn deadlock_loop() {
 
-        let s = fork!(move |s: Receive<i32, End>| {
-            let (x, s) = receive(s)?;
-            close(s)
+        let s = fork!(move |s: Send<(), End>| {
+            let trick: bool = false;
+            loop {
+                // Don't need to do anything, just loop!
+                if trick { break; }
+            }
+            send((), s)
         });
 
-        loop {
-            // Don't need to do anything, just loop!
-        }
-        assert!(send(0, s).is_ok());
+        || -> Result<(), Box<Error>> {
+            let ((), End) = receive(s)?;
+            Ok(())
+        }().unwrap();
+    }
+
+    #[allow(dead_code)]
+    fn deadlock_forget() {
+
+        let s = fork!(move |s: Send<(), End>| {
+            mem::forget(s);
+            Ok(())
+        });
+
+        || -> Result<(), Box<Error>> {
+            let ((), End) = receive(s)?;
+            Ok(())
+        }().unwrap();
+    }
+
+    #[allow(dead_code)]
+    fn deadlock_new() {
+
+        let (s1, r1) = <Send<(), End>>::new();
+        let r2 = fork!(move |s2: Send<(), End>| {
+            let (x, End) = receive(r1)?;
+            let End = send(x, s2)?;
+            Ok(())
+        });
+
+        || -> Result<(), Box<Error>> {
+            let (x, End) = receive(r2)?;
+            let End = send(x, s1)?;
+            Ok(())
+        }().unwrap();
     }
 }
 

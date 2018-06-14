@@ -1,4 +1,4 @@
-\documentclass[sigconf,UKEnglish,natbib=false]{acmart}
+\documentclass[sigconf,natbib=false]{acmart}
 \input{preamble}
 
 \begin{document}
@@ -58,7 +58,7 @@ Duality works as expected: \lstinline{Send<T, S>} is dual to \lstinline{Recv<T, 
 The constraint \lstinline{Session<Dual=Self>} enforces that the dual of a
 session is a session, and that \lstinline{S::Dual::Dual} is equal to \lstinline{S} (involutivity).
 
-The \lstinline{new} function generates a new session and returns two \emph{dual} channel endpoints. Unlike the rest of the functions discussed in this section, \lstinline{new} is \emph{not} part of the public interface.
+The \lstinline{new} function generates a new session and returns two \emph{dual} channel endpoints. Unlike the rest of the functions discussed in this section, \lstinline{new} is \emph{not} part of the public interface---see \cref{sec:limitations}.
 
 Using these types, we can define the types of servers which offer negation and addition as follows, where \lstinline{i32} is the type of 32-bit integers:
 \begin{lstlisting}
@@ -114,8 +114,7 @@ enum CalcOp {Neg(NegSrv), Add(AddSrv)}
 \end{lstlisting}
 Using these macros, we can write the following program. This program forks off a calculator server, which offers the choice between negation and addition, selects addition, sends some numbers, and then returns the result:
 \begin{lstlisting}
-let s = fork!(move |s: CalcSrv| {
-  offer!(s, {
+let s = fork!(move |s: CalcSrv| { offer!(s, {
     CalcOp::Neg(s) => {
       let (x, s) = recv(s)?;
       send(-x, s)
@@ -124,9 +123,7 @@ let s = fork!(move |s: CalcSrv| {
       let (x, s) = recv(s)?;
       let (y, s) = recv(s)?;
       send(x + y, s)
-    },
-  })
-});
+    },})});
 let s = select!(CalcOp::Add, s)?;
 let s = send(4, s)?;
 let s = send(5, s)?;
@@ -134,8 +131,11 @@ let (z, End) = recv(s)?;
 Ok(z)
 \end{lstlisting}
 
-\subsection*{Limitations}
-There are two issues which can make code written using Rusty Variation deadlock, and surprisingly, \lstinline{unsafe} is not one of them:
+\subsection*{Implementation}
+We use the asynchronous channels from \lstinline{std::sync::mpsc}. These are ideal, as they already implement the correct cancellation behaviour. However, they can only transfer values of a single type. Therefore, we treat them as linear channels---channels which can only be used once---and encode our communication following \textcite{dardha2017}. Each \lstinline{send} creates a new channel for the continuation of the session, and sends that along with the value. Fortunately, the channels in \lstinline{std::sync::mpsc} are highly optimised for one-shot usage.
+
+\subsection*{What If I Want to Be Evil?}\label{sec:limitations}
+There are three ways in which you can make code written using Rusty Variation deadlock. The first is by looping, which we discussed earlier. The other two are both explicit, and surprisingly, \lstinline{unsafe} is not one of them:
 
 The biggest issue lies in the fact that Rust's semantics do not guarantee that destructors are actually run. For instance, it is always possible to ``forget'' a value, using \lstinline{std::mem::forget}, without running its destructors. The following simple program deadlocks:
 \begin{lstlisting}
@@ -154,8 +154,6 @@ let r2 = fork!(move |s2: Send<Void, End>| {
 let (v, End) = recv(r2)?;
 send(v, s1)
 \end{lstlisting}
-
-Last, the implementation Rusty Variation is inefficient. We currently use the asynchronous channels from \lstinline{std::sync::mpsc}. These are ideal, as they already implement the correct cancellation behaviour. Unfortunately, they can send values of only a single type. Therefore, in the implementation of \lstinline{send}, we create a new session for the continuation, and send that along with the value. This means we create a ``one-shot'' channel for every call to \lstinline{send}.
 
 \clearpage
 \printbibliography
