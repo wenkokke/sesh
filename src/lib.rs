@@ -476,12 +476,12 @@ mod tests {
     fn deadlock_loop() {
 
         let s = fork!(move |s: Send<(), End>| {
-            let trick: bool = false;
             loop {
-                // Don't need to do anything, just loop!
-                if trick { break; }
+                // Let's trick the reachability checker
+                if false { break; }
             }
-            send((), s)
+            let End = send((), s)?;
+            Ok(())
         });
 
         || -> Result<(), Box<Error>> {
