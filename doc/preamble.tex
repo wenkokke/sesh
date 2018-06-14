@@ -1,7 +1,11 @@
-\usepackage{authblk}
-\usepackage{hyperref}
-\usepackage{listings}
-\usepackage{listings-rust}
+% remove conference information
+% (see https://tex.stackexchange.com/a/346309/75023)
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+% load biblatex
+% (see goo.gl/eXWPjv)
+\let\citename\relax
 \usepackage[%
   backend=biber,
   bibencoding=utf8,
@@ -12,5 +16,21 @@
   backref=false,
   backrefstyle=all+,
   hyperref=true,
-  ]{biblatex}
-\newcommand*{\email}[1]{\normalsize\href{mailto:#1}{\texttt{#1}}\par}
+]{biblatex}
+\addbibresource{main.bib}
+\renewcommand{\bibfont}{\Small}
+
+% load listings-rust
+\usepackage{listings}
+\usepackage{listings-rust}
+\lstset{
+  language=Rust,
+  style=colouredRust,
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  breaklines=true,
+  xleftmargin=\parindent,
+}
+
+% create more space
+\usepackage[cm]{fullpage}

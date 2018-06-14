@@ -470,6 +470,19 @@ mod tests {
 
         assert!(other_thread.join().is_ok());
     }
+
+    fn do_not_run_loops_exist() {
+
+        let s = fork!(move |s: Receive<i32, End>| {
+            let (x, s) = receive(s)?;
+            close(s)
+        });
+
+        loop {
+            // Don't need to do anything, just loop!
+        }
+        assert!(send(0, s).is_ok());
+    }
 }
 
 // */
