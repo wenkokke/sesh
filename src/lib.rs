@@ -21,7 +21,7 @@ pub struct Send<T, S: Session> {
 
 #[must_use]
 #[derive(Debug)]
-pub struct Receive<T, S: Session> {
+pub struct Recv<T, S: Session> {
     channel: Receiver<(T, S)>,
 }
 
@@ -41,15 +41,15 @@ impl Session for End {
 }
 
 impl<T: marker::Send, S: Session> Session for Send<T, S> {
-    type Dual = Receive<T, S::Dual>;
+    type Dual = Recv<T, S::Dual>;
 
     fn new() -> (Self, Self::Dual) {
         let (sender, receiver) = mpsc::channel::<(T, S::Dual)>();
-        return (Send { channel: sender }, Receive { channel: receiver });
+        return (Send { channel: sender }, Recv { channel: receiver });
     }
 }
 
-impl<T: marker::Send, S: Session> Session for Receive<T, S> {
+impl<T: marker::Send, S: Session> Session for Recv<T, S> {
     type Dual = Send<T, S::Dual>;
 
     fn new() -> (Self, Self::Dual) {
@@ -68,7 +68,7 @@ pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>)
     Ok(here)
 }
 
-pub fn receive<'a, T: marker::Send, S: Session>(s: Receive<T, S>)
+pub fn recv<'a, T: marker::Send, S: Session>(s: Recv<T, S>)
                                                 -> Result<(T, S), Box<Error + 'a>> {
     let (v, s) = s.channel.recv()?;
     Ok((v, s))
@@ -131,7 +131,7 @@ macro_rules! fork {
     };
 }
 
-pub type Offer<S1, S2> = Receive<Either<S1, S2>, End>;
+pub type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
 pub type Select<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
 pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
@@ -140,7 +140,7 @@ where
     F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
-    let (e, End) = receive(s)?;
+    let (e, End) = recv(s)?;
     e.either(f, g)
 }
 
@@ -162,7 +162,7 @@ pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>)
 macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
         (move || -> Result<_, _> {
-            let (l, End) = receive($session)?;
+            let (l, End) = recv($session)?;
             match l {
                 $(
                     $pat => $result,
@@ -201,7 +201,7 @@ mod tests {
                 let s = send((), s)?;
                 close(s)
             });
-            let ((), s) = receive(s)?;
+            let ((), s) = recv(s)?;
             close(s)
 
         }().is_ok());
@@ -209,10 +209,10 @@ mod tests {
 
     // Test a simple calculator server, implemented using binary choice.
 
-    type NegServer<N> = Receive<N, Send<N, End>>;
+    type NegServer<N> = Recv<N, Send<N, End>>;
     type NegClient<N> = <NegServer<N> as Session>::Dual;
 
-    type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
+    type AddServer<N> = Recv<N, Recv<N, Send<N, End>>>;
     type AddClient<N> = <AddServer<N> as Session>::Dual;
 
     type SimpleCalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
@@ -221,13 +221,13 @@ mod tests {
     fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
         offer_either(s,
                      |s: NegServer<i32>| {
-                         let (x, s) = receive(s)?;
+                         let (x, s) = recv(s)?;
                          let s = send(-x, s)?;
                          close(s)
                      },
                      |s: AddServer<i32>| {
-                         let (x, s) = receive(s)?;
-                         let (y, s) = receive(s)?;
+                         let (x, s) = recv(s)?;
+                         let (y, s) = recv(s)?;
                          let s = send(x.wrapping_add(y), s)?;
                          close(s)
                      })
@@ -245,7 +245,7 @@ mod tests {
                 let x: i32 = rng.gen();
                 let s = select_left::<_, AddClient<i32>>(s)?;
                 let s = send(x, s)?;
-                let (y, End) = receive(s)?;
+                let (y, End) = recv(s)?;
                 assert_eq!(-x, y);
             }
 
@@ -257,7 +257,7 @@ mod tests {
                 let s = select_right::<NegClient<i32>, _>(s)?;
                 let s = send(x, s)?;
                 let s = send(y, s)?;
-                let (z, End) = receive(s)?;
+                let (z, End) = recv(s)?;
                 assert_eq!(x.wrapping_add(y), z);
             }
 
@@ -272,19 +272,19 @@ mod tests {
         Neg(NegServer<N>),
         Add(AddServer<N>),
     }
-    type NiceCalcServer<N> = Receive<CalcOp<N>, End>;
+    type NiceCalcServer<N> = Recv<CalcOp<N>, End>;
     type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
 
     fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
         offer!(s, {
             CalcOp::Neg(s) => {
-                let (x, s) = receive(s)?;
+                let (x, s) = recv(s)?;
                 let s = send(-x, s)?;
                 close(s)
             },
             CalcOp::Add(s) => {
-                let (x, s) = receive(s)?;
-                let (y, s) = receive(s)?;
+                let (x, s) = recv(s)?;
+                let (y, s) = recv(s)?;
                 let s = send(x.wrapping_add(y), s)?;
                 close(s)
             },
@@ -304,7 +304,7 @@ mod tests {
                 let x: i32 = rng.gen();
                 let s = select!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
-                let (y, s) = receive(s)?;
+                let (y, s) = recv(s)?;
                 close(s)?;
                 assert_eq!(-x, y);
             }
@@ -317,7 +317,7 @@ mod tests {
                 let s = select!(CalcOp::Add, s)?;
                 let s = send(x, s)?;
                 let s = send(y, s)?;
-                let (z, s) = receive(s)?;
+                let (z, s) = recv(s)?;
                 close(s)?;
                 assert_eq!(x.wrapping_add(y), z);
             }
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn cancel_receive_works() {
+    fn cancel_recv_works() {
 
         // Pick some random numbers.
         let mut rng = thread_rng();
@@ -358,7 +358,7 @@ mod tests {
             let s = select!(CalcOp::Add, s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
-            let (z, s) = receive(s)?;
+            let (z, s) = recv(s)?;
             close(s)?;
             assert_eq!(x.wrapping_add(y), z);
             Ok(())
@@ -372,7 +372,7 @@ mod tests {
     fn delegation_works() {
         let (other_thread1, s) = fork_with_thread_id!(nice_calc_server);
         let (other_thread2, u) = fork_with_thread_id!(
-            move |u: Receive<NiceCalcClient<i32>, End>| {cancel(u)});
+            move |u: Recv<NiceCalcClient<i32>, End>| {cancel(u)});
 
         assert!(|| -> Result<(), Box<Error>> {
 
@@ -396,7 +396,7 @@ mod tests {
             let f = move |x: i32| -> Result<i32, Box<Error>> {
                 let s = select!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
-                let (y, s) = receive(s)?;
+                let (y, s) = recv(s)?;
                 close(s)?;
                 Ok(y)
             };
@@ -411,10 +411,10 @@ mod tests {
     }
 
     enum SumOp<N: marker::Send> {
-        More(Receive<N, NiceSumServer<N>>),
+        More(Recv<N, NiceSumServer<N>>),
         Done(Send<N, End>),
     }
-    type NiceSumServer<N> = Receive<SumOp<N>, End>;
+    type NiceSumServer<N> = Recv<SumOp<N>, End>;
     type NiceSumClient<N> = <NiceSumServer<N> as Session>::Dual;
 
     fn nice_sum_server(s: NiceSumServer<i32>) -> Result<(), Box<Error>> {
@@ -424,7 +424,7 @@ mod tests {
     fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>> {
         offer!(s, {
             SumOp::More(s) => {
-                let (y, s) = receive(s)?;
+                let (y, s) = recv(s)?;
                 nice_sum_server_accum(s, x.wrapping_add(y))
             },
             SumOp::Done(s) => {
@@ -444,7 +444,7 @@ mod tests {
             },
             Option::None => {
                 let s = select!(SumOp::Done, s)?;
-                let (sum, s) = receive(s)?;
+                let (sum, s) = recv(s)?;
                 close(s)?;
                 Ok(sum)
             },
@@ -485,7 +485,7 @@ mod tests {
         });
 
         || -> Result<(), Box<Error>> {
-            let ((), End) = receive(s)?;
+            let ((), End) = recv(s)?;
             Ok(())
         }().unwrap();
     }
@@ -499,7 +499,7 @@ mod tests {
         });
 
         || -> Result<(), Box<Error>> {
-            let ((), End) = receive(s)?;
+            let ((), End) = recv(s)?;
             Ok(())
         }().unwrap();
     }
@@ -509,13 +509,13 @@ mod tests {
 
         let (s1, r1) = <Send<(), End>>::new();
         let r2 = fork!(move |s2: Send<(), End>| {
-            let (x, End) = receive(r1)?;
+            let (x, End) = recv(r1)?;
             let End = send(x, s2)?;
             Ok(())
         });
 
         || -> Result<(), Box<Error>> {
-            let (x, End) = receive(r2)?;
+            let (x, End) = recv(r2)?;
             let End = send(x, s1)?;
             Ok(())
         }().unwrap();

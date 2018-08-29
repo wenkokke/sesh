@@ -1,59 +1,67 @@
 # Rusty Variation
 
-A library for deadlock-free session-typed channels in Rust.
+[![Build Status](https://travis-ci.org/wenkokke/rusty-variation.svg?branch=master)](https://travis-ci.org/wenkokke/rusty-variation)
+
+A library for deadlock-free session-typed communication in Rust.
 
 ```rust
-use rv::*;
+    type CalcSrv = Recv<CalcOp, End>;
+    enum CalcOp {
+        Done(End),
+        Neg(Recv<i32, Send<i32, CalcSrv>>),
+        Add(Recv<i32, Send<i32, CalcSrv>>)}
 
-type NegServer<N> = Receive<N, Send<N, End>>;
-type AddServer<N> = Receive<N, Receive<N, Send<N, End>>>;
-enum Op<N: marker::Send> {
-    Neg(NegServer<N>),
-    Add(AddServer<N>),
-}
-type NiceCalcServer<N> = Receive<Op<N>, End>;
-type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
-  
-#[test]
-fn nice_calc_works() {  
-    assert!(|| -> Result<i32, Box<Error>> {
-  
-        // Pick some random numbers.
-        let mut rng = thread_rng();
-        let x: i32 = rng.gen();
-        let y: i32 = rng.gen();
-      
-        // Fork a calculator server.
-        let s = fork!(move |s: NiceCalcServer<i32>| {
-            offer!(s, {
-                Op::Neg(s) => {
-                    let (x, s) = receive(s)?;
-                    let s = send(-x, s)?;
-                    close(s)
-                },
-                Op::Add(s) => {
-                    let (x, s) = receive(s)?;
-                    let (y, s) = receive(s)?;
-                    let s = send(x.wrapping_add(y), s)?;
-                    close(s)
-                },
-            })
-        });
-         
-        // Send it the numbers. 
-        let s = select!(Op::Add, s)?;
-        let s = send(x, s)?;
-        let s = send(y, s)?;
-        
-        // Receive the answer and close the channel.
-        let (z, s) = receive(s)?;
-        close(s)?;
-        
-        // Check the answer.
-        assert_eq!(x.wrapping_add(y), z);
-        
-        Ok(())
+    fn calc_server(s: CalcSrv) -> Result<(), Box<Error>> {
+        offer!(s, {
+            CalcOp::Done(End) => {
+            },
+            CalcOp::Neg(s) => {
+                let (x, s) = recv(s)?;
+                let s = send(-x, s)?;
+                close(s)
+            },
+            CalcOp::Add(s) => {
+                let (x, s) = recv(s)?;
+                let (y, s) = recv(s)?;
+                let s = send(x.wrapping_add(y), s)?;
+                close(s)
+            },
+        })
+    }
 
-    }().is_ok());
-}
+    #[test]
+    fn calc_works() {
+        assert!(|| -> Result<(), Box<Error>> {
+
+            // Pick some random numbers.
+            let mut rng = thread_rng();
+
+            // Test the negation function.
+            {
+                let s: <CalcSrv as Session>::Dual = fork!(calc_server);
+                let x: i32 = rng.gen();
+                let s = select!(CalcOp::Neg, s)?;
+                let s = send(x, s)?;
+                let (y, s) = recv(s)?;
+                let End = select!(CalcOp::Done, s)?;
+                assert_eq!(-x, y);
+            }
+
+            // Test the addition function.
+            {
+                let s: <CalcSrv as Session>::Dual = fork!(calc_server);
+                let x: i32 = rng.gen();
+                let y: i32 = rng.gen();
+                let s = select!(CalcOp::Add, s)?;
+                let s = send(x, s)?;
+                let s = send(y, s)?;
+                let (z, s) = recv(s)?;
+                close(s)?;
+                assert_eq!(x.wrapping_add(y), z);
+            }
+
+            Ok(())
+
+        }().is_ok());
+    }
 ```
