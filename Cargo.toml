@@ -11,9 +11,6 @@ exclude = ["/doc/*"]
 
 [badges]
 travis-ci = { repository = "wenkokke/rusty-variation", branch = "master" }
-is-it-maintained-issue-resolution = { repository = "wenkokke/rusty-variation" }
-is-it-maintained-open-issues = { repository = "wenkokke/rusty-variation" }
-maintenance = { status = "actively-developed" }
 
 [dependencies]
 either = "^1.5.0"
