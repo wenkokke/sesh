@@ -2,9 +2,21 @@
 name = "rusty-variation"
 version = "0.1.0"
 authors = ["Wen Kokke <wen.kokke@gmail.com>"]
+description = "A library for deadlock-free session-typed communication."
+repository = "http://github.com/wenkokke/rusty-variation"
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+categories = ["concurrency"]
+
+[badges]
+travis-ci = { repository = "wenkokke/rusty-variation", branch = "master" }
+is-it-maintained-issue-resolution = { repository = "wenkokke/rusty-variation" }
+is-it-maintained-open-issues = { repository = "wenkokke/rusty-variation" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
-either = "1.5.0"
+either = "~1.5.0"
 
 [dev-dependencies]
-rand = "0.5.4"
+rand = "~0.5.4"
