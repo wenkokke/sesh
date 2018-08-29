@@ -5,7 +5,6 @@ authors = ["Wen Kokke <wen.kokke@gmail.com>"]
 description = "A library for deadlock-free session-typed communication."
 repository = "http://github.com/wenkokke/rusty-variation"
 license = "MIT"
-license-file = "LICENSE"
 readme = "README.md"
 categories = ["concurrency"]
 
