@@ -132,7 +132,7 @@ macro_rules! fork {
 }
 
 pub type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
-pub type Select<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
+pub type Choose<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
 pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
                                                            -> Result<R, Box<Error + 'a>>
@@ -144,14 +144,14 @@ where
     e.either(f, g)
 }
 
-pub fn select_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>)
+pub fn choose_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Choose<S1, S2>)
                                                            -> Result<S1, Box<Error + 'a>> {
     let (here, there) = S1::new();
     let End = send(Either::Left(there), s)?;
     Ok(here)
 }
 
-pub fn select_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Select<S1, S2>)
+pub fn choose_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Choose<S1, S2>)
                                                             -> Result<S2, Box<Error + 'a>> {
     let (here, there) = S2::new();
     let End = send(Either::Right(there), s)?;
@@ -173,7 +173,7 @@ macro_rules! offer {
 }
 
 #[macro_export]
-macro_rules! select {
+macro_rules! choose {
     ($label:path, $session:expr) => {
         (move || -> Result<_, Box<Error>> {
             let (here, there) = <_ as Session>::new();
@@ -243,7 +243,7 @@ mod tests {
             {
                 let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
                 let x: i32 = rng.gen();
-                let s = select_left::<_, AddClient<i32>>(s)?;
+                let s = choose_left::<_, AddClient<i32>>(s)?;
                 let s = send(x, s)?;
                 let (y, End) = recv(s)?;
                 assert_eq!(-x, y);
@@ -254,7 +254,7 @@ mod tests {
                 let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
-                let s = select_right::<NegClient<i32>, _>(s)?;
+                let s = choose_right::<NegClient<i32>, _>(s)?;
                 let s = send(x, s)?;
                 let s = send(y, s)?;
                 let (z, End) = recv(s)?;
@@ -302,7 +302,7 @@ mod tests {
             {
                 let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
-                let s = select!(CalcOp::Neg, s)?;
+                let s = choose!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
                 let (y, s) = recv(s)?;
                 close(s)?;
@@ -314,7 +314,7 @@ mod tests {
                 let s: NiceCalcClient<i32> = fork!(nice_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
-                let s = select!(CalcOp::Add, s)?;
+                let s = choose!(CalcOp::Add, s)?;
                 let s = send(x, s)?;
                 let s = send(y, s)?;
                 let (z, s) = recv(s)?;
@@ -355,7 +355,7 @@ mod tests {
 
         assert!(|| -> Result<(), Box<Error>> {
 
-            let s = select!(CalcOp::Add, s)?;
+            let s = choose!(CalcOp::Add, s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
             let (z, s) = recv(s)?;
@@ -394,7 +394,7 @@ mod tests {
 
             // Create a closure which uses the session.
             let f = move |x: i32| -> Result<i32, Box<Error>> {
-                let s = select!(CalcOp::Neg, s)?;
+                let s = choose!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
                 let (y, s) = recv(s)?;
                 close(s)?;
@@ -438,12 +438,12 @@ mod tests {
                              -> Result<i32, Box<Error>> {
         match xs.pop() {
             Option::Some(x) => {
-                let s = select!(SumOp::More, s)?;
+                let s = choose!(SumOp::More, s)?;
                 let s = send(x, s)?;
                 nice_sum_client_accum(s, xs)
             },
             Option::None => {
-                let s = select!(SumOp::Done, s)?;
+                let s = choose!(SumOp::Done, s)?;
                 let (sum, s) = recv(s)?;
                 close(s)?;
                 Ok(sum)

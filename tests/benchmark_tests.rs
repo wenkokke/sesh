@@ -1,9 +1,6 @@
 #![feature(test)]
-#![feature(use_extern_macros)]
 
-#[macro_use]
 extern crate rusty_variation;
-#[macro_use]
 extern crate session_types;
 extern crate rand;
 extern crate test;
@@ -62,11 +59,11 @@ mod rusty_variation_bench {
 
     fn neg_client(s: CalcCli) -> Result<(), Box<Error>> {
         let n = thread_rng().gen();
-        let s = ::rusty_variation::select!(CalcOp::NEGATE, s)?;
+        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s)?;
         let s = send(n, s)?;
         let (n_, s) = recv(s)?;
         assert_eq!(-n, n_);
-        let s = ::rusty_variation::select!(CalcOp::CLOSE, s)?;
+        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s)?;
         close(s)
     }
 
