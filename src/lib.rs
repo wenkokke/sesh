@@ -64,7 +64,7 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>)
                                                        -> Result<S, Box<Error + 'a>> {
     let (here, there) = S::new();
-    s.channel.send((x, there))?;
+    s.channel.send((x, there)).unwrap_or(());
     Ok(here)
 }
 
@@ -328,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn cancel_send_works() {
+    fn cancel_recv_works() {
 
         let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
 
@@ -343,27 +343,17 @@ mod tests {
     }
 
     #[test]
-    fn cancel_recv_works() {
-
-        // Pick some random numbers.
-        let mut rng = thread_rng();
-        let x: i32 = rng.gen();
-        let y: i32 = rng.gen();
+    fn cancel_send_works() {
 
         let (other_thread, s) = fork_with_thread_id!(
-            move |s: NiceCalcServer<i32>| {cancel(s)});
+            move |s: Recv<(), End>| {cancel(s)});
 
         assert!(|| -> Result<(), Box<Error>> {
 
-            let s = choose!(CalcOp::Add, s)?;
-            let s = send(x, s)?;
-            let s = send(y, s)?;
-            let (z, s) = recv(s)?;
-            close(s)?;
-            assert_eq!(x.wrapping_add(y), z);
+            send((), s)?;
             Ok(())
 
-        }().is_err());
+        }().is_ok());
 
         assert!(other_thread.join().is_ok());
     }

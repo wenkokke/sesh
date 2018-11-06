@@ -1,6 +1,8 @@
 module Main where
 
-import Lib
+import Language.EGV
+import Control.Search (search)
+
 
 main :: IO ()
-main = putStrLn "Hi :3"
+main = print =<< search 30 (checkClosed Unit)
