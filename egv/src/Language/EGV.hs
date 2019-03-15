@@ -1,14 +1,20 @@
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module Language.EGV where
 
-import Control.Applicative (Alternative(empty))
+import Control.Applicative (Alternative(empty,(<|>)))
 import Control.Enumerable (Sized(aconcat), Enumerable(enumerate), share, global)
-import Data.IntMap (IntMap)
+import Data.List (find)
+import Data.IntMap (IntMap,(!))
 import qualified Data.IntMap as IM
 import Data.Typeable (Typeable)
-import Test.Feat (Enumerate, c0, c1, c2, deriveEnumerable)
+import Test.Feat (Enumerate, c0, c1, c2, c3, c4, c5)
 
 
 -- * Types
@@ -53,8 +59,9 @@ instance Enumerable n => Enumerable (S n) where
   enumerate = share $ aconcat [ c0 FZ , c1 FS ]
 
 
-
 -- * Terms
+
+type Name = Int
 
 data Term n
   = Var n
@@ -74,11 +81,16 @@ data Term n
   | Cancel (Term n) Sess
   | Try (Term n) (Term (S n)) (Term n) Type
   | Raise
+  | Chan Name -- ^ Runtime Syntax
   deriving (Typeable, Eq, Show)
 
 
-deriveEnumerable ''Term
-
+instance Enumerable n => Enumerable (Term n) where
+  enumerate = share $ aconcat
+    [ c1 Var  , c1 Lam     , c3 App  , c0 TT    , c2 LetTT
+    , c2 Pair , c4 LetPair , c1 Inl  , c1 Inr   , c5 Case
+    , c1 Fork , c3 Send    , c1 Recv , c1 Close , c2 Cancel
+    , c4 Try  , c0 Raise ]
 
 closed :: Enumerate (Term Z)
 closed = global
@@ -192,22 +204,7 @@ checkClosed :: Type -> Term Z -> Bool
 checkClosed = check IM.empty
 
 
--- * Configurations
-
-data Flag
-  = Main
-  | Child
-
-data Conf n
-  = New (Conf (S n))
-  | Par (Conf n) (Conf n)
-  | Thd Flag (Term n)
-  | Halt
-  | Zap n
-  | Buf n [Term n] n [Term n]
-
-
--- * Reduction
+-- * Term Reduction
 
 ren :: Fin n => (n -> m) -> (Term n -> Term m)
 ren r (Var n)             = Var (r n)
@@ -227,6 +224,7 @@ ren r (Close x)           = Close (ren r x)
 ren r (Cancel x s)        = Cancel (ren r x) s
 ren r (Try x y z a)       = Try (ren r x) (ren (ext r) y) (ren r z) a
 ren _ Raise               = Raise
+ren _ (Chan n)            = Chan n
 
 
 sub :: (Fin n, Fin m) => (n -> Term m) -> (Term n -> Term m)
@@ -247,6 +245,7 @@ sub r (Close x)           = Close (sub r x)
 sub r (Cancel x s)        = Cancel (sub r x) s
 sub r (Try x y z a)       = Try (sub r x) (sub (exts r) y) (sub r z) a
 sub _ Raise               = Raise
+sub _ (Chan n)            = Chan n
 
 
 subst :: Fin n => Term (S n) -> Term n -> Term n
@@ -301,6 +300,103 @@ stepTerm (Try x y z a) = Try <$> stepTerm x <*> pure y <*> pure z <*> pure a
 stepTerm _ = Nothing
 
 
+-- * Configuration reduction
+
+dualName :: Name -> Name
+dualName x
+  | even x    = succ x
+  | otherwise = pred x
+
+data Flag = Main | Child
+
+data Proc n = Proc Flag (Term n)
+
+data Buff n = Buff
+  { buffQueue     :: [Term n]
+  , buffConnected :: Bool     -- ^ This buffer is connected as long as *the other end* isn't zapped.
+  }
+
+data Conf n = Conf
+  { procReducable :: [Proc n]        -- ^ Sequence of processes which can reduce.
+  , procReady     :: [Proc n]        -- ^ Sequence of processes ready to fork, send, or receive.
+  , procBlocked   :: IntMap [Proc n] -- ^ Map from channel names to processes blocked on that channel.
+  , procBuffs     :: IntMap (Buff n) -- ^ Map from channel names to buffers.
+  , procLastName  :: Name
+  }
+
+
+start :: Term n -> Conf n
+start x = Conf
+  { procReducable  = [Proc Main x]
+  , procReady      = []
+  , procBlocked    = IM.empty
+  , procBuffs      = IM.empty
+  , procLastName   = -1
+  }
+
+
+stepConf :: Fin n => Conf n -> Maybe (Conf n)
+stepConf (Conf (Proc f x : reducable) ready blocked buffs ln)
+  = reduceProc <|> markProcAsReadyAndRecurse
+  where
+    reduceProc =
+      do x' <- stepTerm x
+         return (Conf (Proc f x' : reducable) ready blocked buffs ln)
+    markProcAsReadyAndRecurse =
+      do stepConf (Conf reducable (Proc f x : ready) blocked buffs ln)
+stepConf (Conf [] (Proc f x : ready) blocked buff ln)
+  = _
+stepConf (Conf [] [] blocked buffs ln) | IM.null blocked
+  = cleanDirtyBuffer
+  where
+    cleanDirtyBuffer =
+      do (a, Buff (v : _) _) <- findDirty buffs
+         return (Conf [] [] blocked (cancelValue v . dropFromBuffer a $ buffs) ln)
+
+
+-- |Find the buffer which has a non-empty queue and whose dual is disconnected
+findDirty :: IntMap (Buff n) -> Maybe (Name, Buff n)
+findDirty buffs = find isDirty (IM.assocs buffs)
+  where
+    isDirty :: (Int, Buff n) -> Bool
+    isDirty (x, Buff q _) = not (null q) && not (buffConnected (buffs ! dualName x))
+
+
+-- |Remove the first value from a buffer
+dropFromBuffer :: Name -> IntMap (Buff n) -> IntMap (Buff n)
+dropFromBuffer a buffs = IM.adjust (\(Buff (_ : q) c) -> Buff q c) a buffs
+
+
+-- |Cancel the buffer associated with a channel name
+cancelChannel :: Name -> IntMap (Buff n) -> IntMap (Buff n)
+cancelChannel a buffs = IM.adjust (\(Buff q True) -> Buff q False) (dualName a) buffs
+
+
+-- |Cancel all channel names contained in a value
+cancelValue :: Term n -> IntMap (Buff n) -> IntMap (Buff n)
+cancelValue x buffs = foldr1 (.) (cancelChannel <$> channelNames x) buffs
+  where
+    channelNames :: Term n -> [Name]
+    channelNames (Var n)           = empty
+    channelNames (Lam x)           = channelNames x
+    channelNames (App x y a)       = channelNames x <|> channelNames y
+    channelNames TT                = empty
+    channelNames (LetTT x y)       = channelNames x <|> channelNames y
+    channelNames (Pair x y)        = channelNames x <|> channelNames y
+    channelNames (LetPair x y a b) = channelNames x <|> channelNames y
+    channelNames (Inl x)           = channelNames x
+    channelNames (Inr x)           = channelNames x
+    channelNames (Case x y z a b)  = channelNames x <|> channelNames y <|> channelNames z
+    channelNames (Fork x)          = channelNames x
+    channelNames (Send x y a)      = channelNames x <|> channelNames y
+    channelNames (Recv x)          = channelNames x
+    channelNames (Close x)         = channelNames x
+    channelNames (Cancel x s)      = channelNames x
+    channelNames (Try x y z a)     = channelNames x <|> channelNames y <|> channelNames z
+    channelNames Raise             = empty
+    channelNames (Chan n)          = pure n
+
+
 -- * Finite types
 
 class Eq n => Fin n where
@@ -320,3 +416,4 @@ instance Fin n => Fin (S n) where
   ext  r (FS x) = FS (r x)
   exts _ FZ     = Var FZ
   exts r (FS x) = ren FS (r x)
+
