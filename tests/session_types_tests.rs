@@ -11,7 +11,6 @@ mod session_types_tests {
     use std::error::Error;
     use std::thread;
     use session_types::*;
-    use signal_hook::{iterator::Signals, SIGSEGV};
 
     fn client(c: Chan<(), Send<(), Eps>>) {
         c.send(()).close();
