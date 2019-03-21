@@ -1,5 +1,4 @@
 \documentclass[sigplan,screen,review]{acmart}
-\usepackage{lipsum}
 \title{Rusty Variation}
 \subtitle{Session Types with Failure for Rust}
 \author{Wen Kokke}
@@ -16,6 +15,41 @@
 \email{wen.kokke@ed.ac.uk}
 \setcopyright{none}
 \settopmatter{printccs=false, printacmref=false, printfolios=false}
+
+\let\tm\relax
+\let\ty\relax
+
+\usepackage{multicol}
+
+\newcommand{\gvAbs}[2]{\lambda #1.#2}
+\newcommand{\gvApp}[2]{#1 \; #2}
+\newcommand{\gvUnit}[0]{()}
+\newcommand{\gvLetUnit}[2]{\mathbf{let}\;\gvUnit\;=\;#1\;\mathbf{in}\;#2}
+\newcommand{\gvPair}[2]{(#1, #2)}
+\newcommand{\gvLetPair}[4]{\mathbf{let}\;\gvPair{#1}{#2}\;=\;#3\;\mathbf{in}\;#4}
+\newcommand{\gvInl}[1]{\mathbf{inl}\;#1}
+\newcommand{\gvInr}[1]{\mathbf{inr}\;#1}
+\newcommand{\gvCaseSum}[5]{\mathbf{case}\;#1\;\{\gvInl{#2}:#3;\gvInr{#4}:#5\}}
+\newcommand{\gvFork}[1]{\mathbf{fork}\;#1}
+\newcommand{\gvSend}[2]{\mathbf{send}\;#1\;#2}
+\newcommand{\gvRecv}[1]{\mathbf{recv}\;#1}
+\newcommand{\gvClose}[1]{\mathbf{close}\;#1}
+\newcommand{\gvCancel}[1]{\mathbf{cancel}\;#1}
+\newcommand{\gvRaise}[0]{\mathbf{raise}}
+\newcommand{\gvTry}[4]{\mathbf{try}\;#1\;\mathbf{as}\;#2\;\mathbf{in}\;#3\;\mathbf{otherwise}\;#4}
+
 \begin{document}
 \maketitle
+
+\section{Introduction}
+\section{Rusty Variation}
+% terms
+% types
+% environments
+% typing rules for terms
+% configurations
+% typing rules for configurations
+% structural congruence
+% reduction semantics
+
 \end{document}
