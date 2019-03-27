@@ -1,12 +1,12 @@
+extern crate crossbeam_channel;
 extern crate either;
 
 use std::boxed::Box;
 use std::error::Error;
 use std::marker;
 use std::mem;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
 use std::thread::{JoinHandle,spawn};
+use crossbeam_channel::{Sender, Receiver, bounded};
 use either::Either;
 
 /// The session types supported.
@@ -45,7 +45,7 @@ impl<T: marker::Send, S: Session> Session for Send<T, S> {
     type Dual = Recv<T, S::Dual>;
 
     fn new() -> (Self, Self::Dual) {
-        let (sender, receiver) = mpsc::channel::<(T, S::Dual)>();
+        let (sender, receiver) = bounded::<(T, S::Dual)>(1);
         return (Send { channel: sender }, Recv { channel: receiver });
     }
 }
@@ -114,10 +114,13 @@ where
     fork_with_thread_id(p).1
 }
 
-pub type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
-pub type Choose<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
+pub type Offer<S1, S2> =
+    Recv<Either<S1, S2>, End>;
+pub type Choose<S1, S2> =
+    Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Result<R, Box<Error + 'a>>
+pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
+                                         -> Result<R, Box<Error + 'a>>
 where
     S1: Session,
     S2: Session,
