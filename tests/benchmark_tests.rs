@@ -70,7 +70,7 @@ mod rusty_variation_bench {
     #[bench]
     fn bench_calc_server(b: &mut Bencher) {
         b.iter(|| {
-            let s = fork!(calc_server);
+            let s = fork(calc_server);
             assert!(neg_client(s).is_ok());
         });
     }

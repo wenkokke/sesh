@@ -16,7 +16,7 @@ use std::sync::mpsc;
 fn ping_works() {
     assert!(|| -> Result<(), Box<Error>> {
 
-        let s = fork!(move |s: Send<(), End>| {
+        let s = fork(move |s: Send<(), End>| {
             let s = send((), s)?;
             close(s)
         });
@@ -61,7 +61,7 @@ fn simple_calc_works() {
 
         // Test the negation function.
         {
-            let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
+            let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
             let s = choose_left::<_, AddClient<i32>>(s)?;
             let s = send(x, s)?;
@@ -71,7 +71,7 @@ fn simple_calc_works() {
 
         // Test the addition function.
         {
-            let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
+            let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
             let s = choose_right::<NegClient<i32>, _>(s)?;
@@ -121,7 +121,7 @@ fn nice_calc_works() {
 
         // Test the negation function.
         {
-            let s: NiceCalcClient<i32> = fork!(nice_calc_server);
+            let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
             let s = choose!(CalcOp::Neg, s)?;
             let s = send(x, s)?;
@@ -132,7 +132,7 @@ fn nice_calc_works() {
 
         // Test the addition function.
         {
-            let s: NiceCalcClient<i32> = fork!(nice_calc_server);
+            let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
             let s = choose!(CalcOp::Add, s)?;
@@ -154,7 +154,7 @@ fn nice_calc_works() {
 #[test]
 fn cancel_recv_works() {
 
-    let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+    let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
     assert!(|| -> Result<(), Box<Error>> {
 
@@ -169,7 +169,7 @@ fn cancel_recv_works() {
 #[test]
 fn cancel_send_works() {
 
-    let (other_thread, s) = fork_with_thread_id!(
+    let (other_thread, s) = fork_with_thread_id(
         move |s: Recv<(), End>| {cancel(s)});
 
     assert!(|| -> Result<(), Box<Error>> {
@@ -187,8 +187,8 @@ fn cancel_send_works() {
 
 #[test]
 fn delegation_works() {
-    let (other_thread1, s) = fork_with_thread_id!(nice_calc_server);
-    let (other_thread2, u) = fork_with_thread_id!(
+    let (other_thread1, s) = fork_with_thread_id(nice_calc_server);
+    let (other_thread2, u) = fork_with_thread_id(
         move |u: Recv<NiceCalcClient<i32>, End>| {cancel(u)});
 
     assert!(|| -> Result<(), Box<Error>> {
@@ -208,7 +208,7 @@ fn delegation_works() {
 
 #[test]
 fn closure_works() {
-    let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+    let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
     assert!(|| -> Result<i32, Box<Error>> {
 
@@ -282,7 +282,7 @@ fn recursion_works() {
     let xs: Vec<i32> = (1..100).map(|_| rng.gen()).collect();
     let sum1: i32 = xs.iter().fold(0, |sum, &x| sum.wrapping_add(x));
 
-    let (other_thread, s) = fork_with_thread_id!(nice_sum_server);
+    let (other_thread, s) = fork_with_thread_id(nice_sum_server);
 
     assert!(|| -> Result<(), Box<Error>> {
 
@@ -299,7 +299,7 @@ fn recursion_works() {
 #[allow(dead_code)]
 fn deadlock_loop() {
 
-    let s = fork!(move |s: Send<(), End>| {
+    let s = fork(move |s: Send<(), End>| {
         loop {
             // Let's trick the reachability checker
             if false { break; }
@@ -318,7 +318,7 @@ fn deadlock_loop() {
 #[allow(dead_code)]
 fn deadlock_forget() {
 
-    let s = fork!(move |s: Send<(), End>| {
+    let s = fork(move |s: Send<(), End>| {
         mem::forget(s);
         Ok(())
     });
@@ -330,19 +330,19 @@ fn deadlock_forget() {
 }
 
 
-#[allow(dead_code)]
-fn deadlock_new() {
-
-    let (s1, r1) = <Send<(), End>>::new();
-    let r2 = fork!(move |s2: Send<(), End>| {
-        let (x, End) = recv(r1)?;
-        let End = send(x, s2)?;
-        Ok(())
-    });
-
-    || -> Result<(), Box<Error>> {
-        let (x, End) = recv(r2)?;
-        let End = send(x, s1)?;
-        Ok(())
-    }().unwrap();
-}
+// #[allow(dead_code)]
+// fn deadlock_new() {
+//
+//     let (s1, r1) = <Send<(), End>>::new();
+//     let r2 = fork(move |s2: Send<(), End>| {
+//         let (x, End) = recv(r1)?;
+//         let End = send(x, s2)?;
+//         Ok(())
+//     });
+//
+//     || -> Result<(), Box<Error>> {
+//         let (x, End) = recv(r2)?;
+//         let End = send(x, s1)?;
+//         Ok(())
+//     }().unwrap();
+// }
