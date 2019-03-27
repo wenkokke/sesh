@@ -6,6 +6,7 @@ use std::marker;
 use std::mem;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
+use std::thread::{JoinHandle,spawn};
 use either::Either;
 
 /// The session types supported.
@@ -61,15 +62,21 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 
 /// The communication primitives.
 
-pub fn send<'a, T: marker::Send + 'a, S: Session + 'a>(x: T, s: Send<T, S>)
-                                                       -> Result<S, Box<Error + 'a>> {
+pub fn send<'a, T, S>(x: T, s: Send<T, S>) -> Result<S, Box<Error + 'a>>
+where
+    T: marker::Send + 'a,
+    S: Session + 'a,
+{
     let (here, there) = S::new();
     s.channel.send((x, there)).unwrap_or(());
     Ok(here)
 }
 
-pub fn recv<'a, T: marker::Send, S: Session>(s: Recv<T, S>)
-                                                -> Result<(T, S), Box<Error + 'a>> {
+pub fn recv<'a, T, S>(s: Recv<T, S>) -> Result<(T, S), Box<Error + 'a>>
+where
+    T: marker::Send,
+    S: Session,
+{
     let (v, s) = s.channel.recv()?;
     Ok((v, s))
 }
@@ -84,59 +91,36 @@ pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
     Ok(())
 }
 
-#[macro_export]
-macro_rules! fork_with_thread_id {
-
-    // Syntax `fork_with_thread_id!(nice_calc_server)`
-    ($fn_name:ident) => {{
-        let (there, here) = $crate::Session::new();
-        let other_thread = ::std::thread::spawn(move || {
-            let r = $fn_name(there);
-            match r {
-                Ok(_) => (),
-                Err(e) => panic!("{}", e.description()),
-            }
-        });
-        (other_thread, here)
-    }};
-
-    // Syntax `fork_with_thread_id!(move |s: NiceCalcServer<i32>| { ... })`
-    (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {{
-        let ($session_name, here) = <$session_type as $crate::Session>::new();
-        let other_thread = ::std::thread::spawn(move || {
-            let r = (move || -> Result<_, Box<Error>> {
-                $forked_process
-            })();
-            match r {
-                Ok(_) => (),
-                Err(e) => panic!("{}", e.description()),
-            }
-        });
-        (other_thread, here)
-    }};
+pub(crate) fn fork_with_thread_id<S, P>(p: P) -> (JoinHandle<()>, S::Dual)
+where
+    S: Session + 'static,
+    P: Fn(S) -> Result<(), Box<Error>> + marker::Send + 'static
+{
+    let (there, here) = Session::new();
+    let other_thread = spawn(move || {
+        match p(there) {
+            Ok(()) => (),
+            Err(e) => panic!("{}", e.description()),
+        }
+    });
+    (other_thread, here)
 }
 
-
-#[macro_export]
-macro_rules! fork {
-
-    // Syntax `fork!(nice_calc_server)`
-    ($fn_name:ident) => {
-        fork_with_thread_id!($fn_name).1
-    };
-
-    // Syntax `fork!(move |s: NiceCalcServer<i32>| { ... })`
-    (move | $session_name:ident : $session_type:ty | $forked_process:block ) => {
-        fork_with_thread_id!(move | $session_name : $session_type | $forked_process ).1
-    };
+pub fn fork<S, P>(p: P) -> S::Dual
+where
+    S: Session + 'static,
+    P: Fn(S) -> Result<(), Box<Error>> + marker::Send + 'static
+{
+    fork_with_thread_id(p).1
 }
 
 pub type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
 pub type Choose<S1, S2> = Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-pub fn offer_either<'a, S1: Session, S2: Session, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
-                                                           -> Result<R, Box<Error + 'a>>
+pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G) -> Result<R, Box<Error + 'a>>
 where
+    S1: Session,
+    S2: Session,
     F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
@@ -144,15 +128,21 @@ where
     e.either(f, g)
 }
 
-pub fn choose_left<'a, S1: Session + 'a, S2: Session + 'a>(s: Choose<S1, S2>)
-                                                           -> Result<S1, Box<Error + 'a>> {
+pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S1, Box<Error + 'a>>
+where
+    S1: Session + 'a,
+    S2: Session + 'a,
+{
     let (here, there) = S1::new();
     let End = send(Either::Left(there), s)?;
     Ok(here)
 }
 
-pub fn choose_right<'a, S1: Session + 'a, S2: Session + 'a>(s: Choose<S1, S2>)
-                                                            -> Result<S2, Box<Error + 'a>> {
+pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S2, Box<Error + 'a>>
+where
+    S1: Session + 'a,
+    S2: Session + 'a,
+{
     let (here, there) = S2::new();
     let End = send(Either::Right(there), s)?;
     Ok(here)
@@ -197,7 +187,7 @@ mod tests {
     fn ping_works() {
         assert!(|| -> Result<(), Box<Error>> {
 
-            let s = fork!(move |s: Send<(), End>| {
+            let s = fork(move |s: Send<(), End>| {
                 let s = send((), s)?;
                 close(s)
             });
@@ -241,7 +231,7 @@ mod tests {
 
             // Test the negation function.
             {
-                let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
+                let s: SimpleCalcClient<i32> = fork(simple_calc_server);
                 let x: i32 = rng.gen();
                 let s = choose_left::<_, AddClient<i32>>(s)?;
                 let s = send(x, s)?;
@@ -251,7 +241,7 @@ mod tests {
 
             // Test the addition function.
             {
-                let s: SimpleCalcClient<i32> = fork!(simple_calc_server);
+                let s: SimpleCalcClient<i32> = fork(simple_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
                 let s = choose_right::<NegClient<i32>, _>(s)?;
@@ -300,7 +290,7 @@ mod tests {
 
             // Test the negation function.
             {
-                let s: NiceCalcClient<i32> = fork!(nice_calc_server);
+                let s: NiceCalcClient<i32> = fork(nice_calc_server);
                 let x: i32 = rng.gen();
                 let s = choose!(CalcOp::Neg, s)?;
                 let s = send(x, s)?;
@@ -311,7 +301,7 @@ mod tests {
 
             // Test the addition function.
             {
-                let s: NiceCalcClient<i32> = fork!(nice_calc_server);
+                let s: NiceCalcClient<i32> = fork(nice_calc_server);
                 let x: i32 = rng.gen();
                 let y: i32 = rng.gen();
                 let s = choose!(CalcOp::Add, s)?;
@@ -330,7 +320,7 @@ mod tests {
     #[test]
     fn cancel_recv_works() {
 
-        let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+        let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
         assert!(|| -> Result<(), Box<Error>> {
 
@@ -345,7 +335,7 @@ mod tests {
     #[test]
     fn cancel_send_works() {
 
-        let (other_thread, s) = fork_with_thread_id!(
+        let (other_thread, s) = fork_with_thread_id(
             move |s: Recv<(), End>| {cancel(s)});
 
         assert!(|| -> Result<(), Box<Error>> {
@@ -360,8 +350,8 @@ mod tests {
 
     #[test]
     fn delegation_works() {
-        let (other_thread1, s) = fork_with_thread_id!(nice_calc_server);
-        let (other_thread2, u) = fork_with_thread_id!(
+        let (other_thread1, s) = fork_with_thread_id(nice_calc_server);
+        let (other_thread2, u) = fork_with_thread_id(
             move |u: Recv<NiceCalcClient<i32>, End>| {cancel(u)});
 
         assert!(|| -> Result<(), Box<Error>> {
@@ -378,7 +368,7 @@ mod tests {
 
     #[test]
     fn closure_works() {
-        let (other_thread, s) = fork_with_thread_id!(nice_calc_server);
+        let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
         assert!(|| -> Result<i32, Box<Error>> {
 
@@ -449,7 +439,7 @@ mod tests {
         let xs: Vec<i32> = (1..100).map(|_| rng.gen()).collect();
         let sum1: i32 = xs.iter().fold(0, |sum, &x| sum.wrapping_add(x));
 
-        let (other_thread, s) = fork_with_thread_id!(nice_sum_server);
+        let (other_thread, s) = fork_with_thread_id(nice_sum_server);
 
         assert!(|| -> Result<(), Box<Error>> {
 
@@ -465,7 +455,7 @@ mod tests {
     #[allow(dead_code)]
     fn deadlock_loop() {
 
-        let s = fork!(move |s: Send<(), End>| {
+        let s = fork(move |s: Send<(), End>| {
             loop {
                 // Let's trick the reachability checker
                 if false { break; }
@@ -483,7 +473,7 @@ mod tests {
     #[allow(dead_code)]
     fn deadlock_forget() {
 
-        let s = fork!(move |s: Send<(), End>| {
+        let s = fork(move |s: Send<(), End>| {
             mem::forget(s);
             Ok(())
         });
@@ -494,22 +484,23 @@ mod tests {
         }().unwrap();
     }
 
-    #[allow(dead_code)]
-    fn deadlock_new() {
-
-        let (s1, r1) = <Send<(), End>>::new();
-        let r2 = fork!(move |s2: Send<(), End>| {
-            let (x, End) = recv(r1)?;
-            let End = send(x, s2)?;
-            Ok(())
-        });
-
-        || -> Result<(), Box<Error>> {
-            let (x, End) = recv(r2)?;
-            let End = send(x, s1)?;
-            Ok(())
-        }().unwrap();
-    }
+//  #[allow(dead_code)]
+//  fn deadlock_new() {
+//
+//      let (s1, r1) = <Send<Void, End>>::new();
+//      let (s2, r2) = <Send<Void, End>>::new();
+//      spawn(move || {
+//          let (x, End) = recv(r1)?;
+//          let End = send(x, s2)?;
+//          Ok(())
+//      });
+//
+//      || -> Result<(), Box<Error>> {
+//          let (x, End) = recv(r2)?;
+//          let End = send(x, s1)?;
+//          Ok(())
+//      }().unwrap();
+//  }
 }
 
 // */
