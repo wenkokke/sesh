@@ -5,8 +5,8 @@ use std::boxed::Box;
 use std::error::Error;
 use std::marker;
 use std::mem;
-use std::thread::{JoinHandle,spawn};
-use crossbeam_channel::{Sender, Receiver, bounded};
+use std::thread::{JoinHandle, spawn};
+use crossbeam_channel::{Sender, Receiver, Select, bounded};
 use either::Either;
 
 /// The session types supported.
@@ -60,7 +60,7 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 }
 
 
-/// The communication primitives.
+// Send and receive
 
 pub fn send<'a, T, S>(x: T, s: Send<T, S>) -> Result<S, Box<Error + 'a>>
 where
@@ -81,20 +81,27 @@ where
     Ok((v, s))
 }
 
-pub fn close(s: End) -> Result<(), Box<Error>> {
-    let End = s;
-    Ok(())
-}
+
+
+// Cancellation and closing
 
 pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
     mem::drop(x);
     Ok(())
 }
 
+pub fn close(s: End) -> Result<(), Box<Error>> {
+    let End = s;
+    Ok(())
+}
+
+
+// Fork
+
 pub fn fork_with_thread_id<S, P>(p: P) -> (JoinHandle<()>, S::Dual)
 where
     S: Session + 'static,
-    P: Fn(S) -> Result<(), Box<Error>> + marker::Send + 'static
+    P: FnOnce(S) -> Result<(), Box<Error>> + marker::Send + 'static
 {
     let (there, here) = Session::new();
     let other_thread = spawn(move || {
@@ -109,15 +116,19 @@ where
 pub fn fork<S, P>(p: P) -> S::Dual
 where
     S: Session + 'static,
-    P: Fn(S) -> Result<(), Box<Error>> + marker::Send + 'static
+    P: FnOnce(S) -> Result<(), Box<Error>> + marker::Send + 'static
 {
     fork_with_thread_id(p).1
 }
+
+
+// Binary choice
 
 pub type Offer<S1, S2> =
     Recv<Either<S1, S2>, End>;
 pub type Choose<S1, S2> =
     Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
+
 
 pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
                                          -> Result<R, Box<Error + 'a>>
@@ -151,6 +162,9 @@ where
     Ok(here)
 }
 
+
+// N-ary choice
+
 #[macro_export]
 macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
@@ -174,4 +188,24 @@ macro_rules! choose {
             Ok(here)
         })()
     };
+}
+
+
+// Selection
+
+pub fn select<'a, T, S, I>(rs: &[Recv<T, S>]) -> Result<(T, S), Box<Error + 'a>>
+where
+    T: marker::Send + 'a,
+    S: Session + 'a,
+{
+    let mut sel = Select::new();
+    for r in rs {
+        sel.recv(&r.channel);
+    }
+    loop {
+        let oper = sel.select();
+        let index = oper.index();
+        let (x, s) = oper.recv(&rs[index].channel)?;
+        break Ok((x, s));
+    }
 }

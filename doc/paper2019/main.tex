@@ -16,39 +16,177 @@
 \setcopyright{none}
 \settopmatter{printccs=false, printacmref=false, printfolios=false}
 
-\let\tm\relax
-\let\ty\relax
-
-\usepackage{multicol}
-
-\newcommand{\gvAbs}[2]{\lambda #1.#2}
-\newcommand{\gvApp}[2]{#1 \; #2}
-\newcommand{\gvUnit}[0]{()}
-\newcommand{\gvLetUnit}[2]{\mathbf{let}\;\gvUnit\;=\;#1\;\mathbf{in}\;#2}
-\newcommand{\gvPair}[2]{(#1, #2)}
-\newcommand{\gvLetPair}[4]{\mathbf{let}\;\gvPair{#1}{#2}\;=\;#3\;\mathbf{in}\;#4}
-\newcommand{\gvInl}[1]{\mathbf{inl}\;#1}
-\newcommand{\gvInr}[1]{\mathbf{inr}\;#1}
-\newcommand{\gvCaseSum}[5]{\mathbf{case}\;#1\;\{\gvInl{#2}:#3;\gvInr{#4}:#5\}}
-\newcommand{\gvFork}[1]{\mathbf{fork}\;#1}
-\newcommand{\gvSend}[2]{\mathbf{send}\;#1\;#2}
-\newcommand{\gvRecv}[1]{\mathbf{recv}\;#1}
-\newcommand{\gvClose}[1]{\mathbf{close}\;#1}
-\newcommand{\gvCancel}[1]{\mathbf{cancel}\;#1}
-\newcommand{\gvRaise}[0]{\mathbf{raise}}
-\newcommand{\gvTry}[4]{\mathbf{try}\;#1\;\mathbf{as}\;#2\;\mathbf{in}\;#3\;\mathbf{otherwise}\;#4}
+\input{preamble}
 
 \begin{document}
 \maketitle
 
-\section{Introduction}
-\section{Rusty Variation}
-% terms
-% types
-% environments
-% typing rules for terms
-% configurations
-% typing rules for configurations
-% structural congruence
-% reduction semantics
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \(
+    \begin{array}{lrll}
+      \ty{A}, \ty{B}, \ty{C},
+      &::= & \rvTyUnit       &\textit{unit type}       \\
+      &\mid& \rvTyFun{A}{B}  &\textit{function type}   \\
+      &\mid& \rvTySum{A}{B}  &\textit{sum type}        \\
+      &\mid& \rvTyPair{A}{B} &\textit{pair type}       \\
+      &\mid& \rvTyOption{A}  &\textit{option type}     \\
+      &\mid& \texttt{\ty{S}} &\textit{session type}    \\[4pt]
+
+      \ty{S}, \ty{T}
+      &::= & \rvTySend{A}{S} &\textit{session send}    \\
+      &\mid& \rvTyRecv{A}{S} &\textit{session receive} \\
+      &\mid& \rvTyEnd        &\textit{session end}     \\[4pt]
+      
+      \tm{L}, \tm{M}, \tm{N}
+      &::= & \rvVar{x}                 &\textit{variables}          \\
+      &\mid& \rvAbs[A]{x}{M}           &\textit{lambda abstraction} \\
+      &\mid& \rvApp{M}{N}              &\textit{application}        \\
+      &\mid& \rvUnit                   &\textit{units}              \\
+      &\mid& \rvLetUnit{M}{N}          &\textit{unit elimination}   \\
+      &\mid& \rvPair{M}{N}             &\textit{pairs}              \\
+      &\mid& \rvLetPair{x}{y}{M}{N}    &\textit{pair elimination}   \\
+      &\mid& \rvInl{M}                 &\textit{left injection}     \\
+      &\mid& \rvInr{M}                 &\textit{right injection}    \\
+      &\mid& \rvCaseSum{L}{x}{M}{x}{N} &\textit{sum elimination}    \\
+      &\mid& \rvSome{M}                &\textit{some injection}     \\
+      &\mid& \rvNone                   &\textit{none injection}     \\
+      &\mid& \rvCaseOption{L}{x}{M}{N} &\textit{option elimination} \\
+      &\mid& \rvFork{M}    \mid
+             \rvSend{M}{N} \mid
+             \rvRecv{M}                &\textit{session primitives} 
+    \end{array}
+    \)
+  \end{mdframed}
+  \caption{Rusty Variation, terms and types.}
+  \label{fig:rv}
+\end{figure*}
+
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \begin{prooftree*}
+      \AXC{$\tmty{x}{A}\in\ty{\Gamma}$}
+      \RightLabel{\textsc{Var}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvVar{x}}{A}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}\st{,}\;\ty{A}}{M}{B}$}
+      \RightLabel{\textsc{Abs}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvAbs[A]{x}{M}}{\rvTyFun{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyFun{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{A}$}
+      \RightLabel{\textsc{App}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvApp{M}{N}}{B}$}
+    \end{prooftree*}
+    
+    \vspace*{0.5\baselineskip}
+    
+    \begin{prooftree*}
+      \AXC{}
+      \RightLabel{\textsc{Unit}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvUnit}{\rvTyUnit}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyUnit}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{A}$}
+      \RightLabel{\textsc{LetUnit}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetUnit{M}{N}}{A}$}
+    \end{prooftree*}
+    
+    \vspace*{0.5\baselineskip}
+    
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{B}$}
+      \RightLabel{\textsc{Pair}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvPair{M}{N}}{\rvTyPair{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyPair{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}\st{,}\;\tmty{y}{B}}{N}{C}$}
+      \RightLabel{\textsc{LetPair}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetPair{x}{y}{M}{N}}{C}$}
+    \end{prooftree*}
+    
+    \vspace*{0.5\baselineskip}
+    
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \RightLabel{\textsc{Left}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvInl{M}}{\rvTySum{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{B}$}
+      \RightLabel{\textsc{Right}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvInr{M}}{\rvTySum{A}{B}}$}
+    \end{prooftree*}
+       
+    \vspace*{0.5\baselineskip}
+ 
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{L}{\rvTySum{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{C}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{y}{B}}{N}{C}$}
+      \RightLabel{\textsc{CaseSum}}
+      \TIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Gamma}}{\rvCaseSum{L}{x}{M}{y}{N}}{C}$}
+    \end{prooftree*}
+    
+    \vspace*{0.5\baselineskip}
+    
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \RightLabel{\textsc{Some}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvSome{M}}{\rvTyOption{A}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{}
+      \RightLabel{\textsc{None}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvNone}{\rvTyOption{A}}$}
+    \end{prooftree*}
+
+    \vspace*{0.5\baselineskip}
+    
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{L}{\rvTyOption{A}}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{C}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{C}$}
+      \RightLabel{\textsc{CaseOpt}}
+      \TIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvCaseOption{L}{x}{M}{N}}{C}$}
+    \end{prooftree*}
+
+    \vspace*{0.5\baselineskip}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyFun{S}{\rvTyUnit}}$}
+      \RightLabel{\textsc{Fork}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvFork{M}}{\rvDual{S}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{\rvTySend{A}{S}}$}
+      \RightLabel{\textsc{Send}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvSend{M}{N}}{S}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyRecv{A}{S}}$}
+      \RightLabel{\textsc{Recv}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvRecv{M}}{\rvPair{A}{S}}$}
+    \end{prooftree*}
+
+    \[
+      \rvDual{\rvTySend{A}{S}} = \rvTyRecv{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyRecv{A}{S}} = \rvTySend{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyEnd} = \rvTyEnd
+    \]
+  \end{mdframed}
+\caption{Rusty Variation, typing rules.}
+\label{fig:rv-typing}
+\end{figure*}
+
 \end{document}
