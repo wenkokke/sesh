@@ -330,19 +330,19 @@ fn deadlock_forget() {
 }
 
 
-// #[allow(dead_code)]
-// fn deadlock_new() {
-//
-//     let (s1, r1) = <Send<(), End>>::new();
-//     let r2 = fork(move |s2: Send<(), End>| {
-//         let (x, End) = recv(r1)?;
-//         let End = send(x, s2)?;
-//         Ok(())
-//     });
-//
-//     || -> Result<(), Box<Error>> {
-//         let (x, End) = recv(r2)?;
-//         let End = send(x, s1)?;
-//         Ok(())
-//     }().unwrap();
-// }
+#[allow(dead_code)]
+fn deadlock_new() {
+
+    let (s1, r1) = <Send<(), End>>::new();
+    let r2 = fork(move |s2: Send<(), End>| {
+        let (x, End) = recv(r1)?;
+        let End = send(x, s2)?;
+        Ok(())
+    });
+
+    || -> Result<(), Box<Error>> {
+        let (x, End) = recv(r2)?;
+        let End = send(x, s1)?;
+        Ok(())
+    }().unwrap();
+}
