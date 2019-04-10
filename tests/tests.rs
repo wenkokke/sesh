@@ -65,7 +65,8 @@ fn simple_calc_works() {
             let x: i32 = rng.gen();
             let s = choose_left::<_, AddClient<i32>>(s)?;
             let s = send(x, s)?;
-            let (y, End) = recv(s)?;
+            let (y, s) = recv(s)?;
+            close(s)?;
             assert_eq!(-x, y);
         }
 
@@ -77,7 +78,8 @@ fn simple_calc_works() {
             let s = choose_right::<NegClient<i32>, _>(s)?;
             let s = send(x, s)?;
             let s = send(y, s)?;
-            let (z, End) = recv(s)?;
+            let (z, s) = recv(s)?;
+            close(s)?;
             assert_eq!(x.wrapping_add(y), z);
         }
 
@@ -158,8 +160,7 @@ fn cancel_recv_works() {
 
     assert!(|| -> Result<(), Box<Error>> {
 
-        cancel(s)?;
-        Ok(())
+        cancel(s)
 
     }().is_ok());
 
@@ -170,14 +171,16 @@ fn cancel_recv_works() {
 fn cancel_send_works() {
 
     let (other_thread, s) = fork_with_thread_id(
-        move |s: Recv<(), End>| {cancel(s)});
+        move |s: Recv<(), End>| {
+            cancel(s)
+        });
 
     assert!(|| -> Result<(), Box<Error>> {
 
-        send((), s)?;
-        Ok(())
+        let s = send((), s)?;
+        close(s)
 
-    }().is_ok());
+    }().is_err());
 
     assert!(other_thread.join().is_ok());
 }
@@ -194,10 +197,9 @@ fn delegation_works() {
     assert!(|| -> Result<(), Box<Error>> {
 
         let u = send(s, u)?;
-        close(u)?;
-        Ok(())
+        close(u)
 
-    }().is_ok());
+    }().is_err());
 
     assert!(other_thread1.join().is_err());
     assert!(other_thread2.join().is_ok());
@@ -304,13 +306,13 @@ fn deadlock_loop() {
             // Let's trick the reachability checker
             if false { break; }
         }
-        let End = send((), s)?;
-        Ok(())
+        let s = send((), s)?;
+        close(s)
     });
 
     || -> Result<(), Box<Error>> {
-        let ((), End) = recv(s)?;
-        Ok(())
+        let ((), s) = recv(s)?;
+        close(s)
     }().unwrap();
 }
 
@@ -324,8 +326,8 @@ fn deadlock_forget() {
     });
 
     || -> Result<(), Box<Error>> {
-        let ((), End) = recv(s)?;
-        Ok(())
+        let ((), s) = recv(s)?;
+        close(s)
     }().unwrap();
 }
 
@@ -335,14 +337,16 @@ fn deadlock_new() {
 
     let (s1, r1) = <Send<(), End>>::new();
     let r2 = fork(move |s2: Send<(), End>| {
-        let (x, End) = recv(r1)?;
-        let End = send(x, s2)?;
-        Ok(())
+        let (x, r1) = recv(r1)?;
+        let s2 = send(x, s2)?;
+        close(r1)?;
+        close(s2)
     });
 
     || -> Result<(), Box<Error>> {
-        let (x, End) = recv(r2)?;
-        let End = send(x, s1)?;
-        Ok(())
+        let (x, r2) = recv(r2)?;
+        let s1 = send(x, s1)?;
+        close(r2)?;
+        close(s1)
     }().unwrap();
 }

@@ -12,7 +12,10 @@ use either::Either;
 /// The session types supported.
 
 #[derive(Debug)]
-pub struct End;
+pub struct End {
+    sender: Sender<()>,
+    receiver: Receiver<()>,
+}
 
 #[must_use]
 #[derive(Debug)]
@@ -37,7 +40,11 @@ impl Session for End {
     type Dual = End;
 
     fn new() -> (Self, Self::Dual) {
-        return (End, End);
+        let (sender1, receiver1) = bounded::<()>(1);
+        let (sender2, receiver2) = bounded::<()>(1);
+
+        return (End { sender: sender1, receiver: receiver2 },
+                End { sender: sender2, receiver: receiver1 });
     }
 }
 
@@ -91,7 +98,8 @@ pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
 }
 
 pub fn close(s: End) -> Result<(), Box<Error>> {
-    let End = s;
+    s.sender.send(())?;
+    s.receiver.recv()?;
     Ok(())
 }
 
@@ -138,7 +146,8 @@ where
     F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
-    let (e, End) = recv(s)?;
+    let (e, s) = recv(s)?;
+    close(s)?;
     e.either(f, g)
 }
 
@@ -148,7 +157,8 @@ where
     S2: Session + 'a,
 {
     let (here, there) = S1::new();
-    let End = send(Either::Left(there), s)?;
+    let s = send(Either::Left(there), s)?;
+    close(s)?;
     Ok(here)
 }
 
@@ -158,7 +168,8 @@ where
     S2: Session + 'a,
 {
     let (here, there) = S2::new();
-    let End = send(Either::Right(there), s)?;
+    let s = send(Either::Right(there), s)?;
+    close(s)?;
     Ok(here)
 }
 
