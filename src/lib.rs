@@ -6,7 +6,7 @@ use std::error::Error;
 use std::marker;
 use std::mem;
 use std::thread::{JoinHandle, spawn};
-use crossbeam_channel::{Sender, Receiver, Select, bounded};
+use crossbeam_channel::{Sender, Receiver, bounded};
 use either::Either;
 
 /// The session types supported.
@@ -69,14 +69,14 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 
 // Send and receive
 
-pub fn send<'a, T, S>(x: T, s: Send<T, S>) -> Result<S, Box<Error + 'a>>
+pub fn send<'a, T, S>(x: T, s: Send<T, S>) -> S
 where
     T: marker::Send + 'a,
     S: Session + 'a,
 {
     let (here, there) = S::new();
     s.channel.send((x, there)).unwrap_or(());
-    Ok(here)
+    here
 }
 
 pub fn recv<'a, T, S>(s: Recv<T, S>) -> Result<(T, S), Box<Error + 'a>>
@@ -92,15 +92,13 @@ where
 
 // Cancellation and closing
 
-pub fn cancel<T>(x: T) -> Result<(), Box<Error>> {
+pub fn cancel<T>(x: T) -> () {
     mem::drop(x);
-    Ok(())
 }
 
-pub fn close(s: End) -> Result<(), Box<Error>> {
-    s.sender.send(())?;
-    s.receiver.recv()?;
-    Ok(())
+pub fn close(s: End) -> () {
+    s.sender.send(()).unwrap_or(());
+    s.receiver.recv().unwrap_or(());
 }
 
 
@@ -147,30 +145,30 @@ where
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
     let (e, s) = recv(s)?;
-    close(s)?;
+    close(s);
     e.either(f, g)
 }
 
-pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S1, Box<Error + 'a>>
+pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> S1
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S1::new();
-    let s = send(Either::Left(there), s)?;
-    close(s)?;
-    Ok(here)
+    let s = send(Either::Left(there), s);
+    close(s);
+    here
 }
 
-pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S2, Box<Error + 'a>>
+pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> S2
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S2::new();
-    let s = send(Either::Right(there), s)?;
-    close(s)?;
-    Ok(here)
+    let s = send(Either::Right(there), s);
+    close(s);
+    here
 }
 
 
@@ -180,7 +178,8 @@ where
 macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
         (move || -> Result<_, _> {
-            let (l, End) = recv($session)?;
+            let (l, s) = recv($session)?;
+            close(s);
             match l {
                 $(
                     $pat => $result,
@@ -192,31 +191,30 @@ macro_rules! offer {
 
 #[macro_export]
 macro_rules! choose {
-    ($label:path, $session:expr) => {
-        (move || -> Result<_, Box<Error>> {
-            let (here, there) = <_ as Session>::new();
-            let End = send($label(there), $session)?;
-            Ok(here)
-        })()
-    };
+    ($label:path, $session:expr) => {{
+        let (here, there) = <_ as Session>::new();
+        let s = send($label(there), $session);
+        close(s);
+        here
+    }};
 }
 
 
 // Selection
 
-pub fn select<'a, T, S, I>(rs: &[Recv<T, S>]) -> Result<(T, S), Box<Error + 'a>>
-where
-    T: marker::Send + 'a,
-    S: Session + 'a,
-{
-    let mut sel = Select::new();
-    for r in rs {
-        sel.recv(&r.channel);
-    }
-    loop {
-        let oper = sel.select();
-        let index = oper.index();
-        let (x, s) = oper.recv(&rs[index].channel)?;
-        break Ok((x, s));
-    }
-}
+// pub fn select<'a, T, S, I>(rs: &[Recv<T, S>]) -> Result<(T, S), Box<Error + 'a>>
+// where
+//     T: marker::Send + 'a,
+//     S: Session + 'a,
+// {
+//     let mut sel = Select::new();
+//     for r in rs {
+//         sel.recv(&r.channel);
+//     }
+//     loop {
+//         let oper = sel.select();
+//         let index = oper.index();
+//         let (x, s) = oper.recv(&rs[index].channel)?;
+//         break Ok((x, s));
+//     }
+// }

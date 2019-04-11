@@ -17,11 +17,13 @@ fn ping_works() {
     assert!(|| -> Result<(), Box<Error>> {
 
         let s = fork(move |s: Send<(), End>| {
-            let s = send((), s)?;
-            close(s)
+            let s = send((), s);
+            close(s);
+            Ok(())
         });
         let ((), s) = recv(s)?;
-        close(s)
+        close(s);
+        Ok(())
 
     }().is_ok());
 }
@@ -42,14 +44,16 @@ fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
     offer_either(s,
                  |s: NegServer<i32>| {
                      let (x, s) = recv(s)?;
-                     let s = send(-x, s)?;
-                     close(s)
+                     let s = send(-x, s);
+                     close(s);
+                     Ok(())
                  },
                  |s: AddServer<i32>| {
                      let (x, s) = recv(s)?;
                      let (y, s) = recv(s)?;
-                     let s = send(x.wrapping_add(y), s)?;
-                     close(s)
+                     let s = send(x.wrapping_add(y), s);
+                     close(s);
+                     Ok(())
                  })
 }
 
@@ -63,10 +67,10 @@ fn simple_calc_works() {
         {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
-            let s = choose_left::<_, AddClient<i32>>(s)?;
-            let s = send(x, s)?;
+            let s = choose_left::<_, AddClient<i32>>(s);
+            let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s)?;
+            close(s);
             assert_eq!(-x, y);
         }
 
@@ -75,11 +79,11 @@ fn simple_calc_works() {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose_right::<NegClient<i32>, _>(s)?;
-            let s = send(x, s)?;
-            let s = send(y, s)?;
+            let s = choose_right::<NegClient<i32>, _>(s);
+            let s = send(x, s);
+            let s = send(y, s);
             let (z, s) = recv(s)?;
-            close(s)?;
+            close(s);
             assert_eq!(x.wrapping_add(y), z);
         }
 
@@ -102,14 +106,16 @@ fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
     offer!(s, {
         CalcOp::Neg(s) => {
             let (x, s) = recv(s)?;
-            let s = send(-x, s)?;
-            close(s)
+            let s = send(-x, s);
+            close(s);
+            Ok(())
         },
         CalcOp::Add(s) => {
             let (x, s) = recv(s)?;
             let (y, s) = recv(s)?;
-            let s = send(x.wrapping_add(y), s)?;
-            close(s)
+            let s = send(x.wrapping_add(y), s);
+            close(s);
+            Ok(())
         },
     })
 }
@@ -125,10 +131,10 @@ fn nice_calc_works() {
         {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
-            let s = choose!(CalcOp::Neg, s)?;
-            let s = send(x, s)?;
+            let s = choose!(CalcOp::Neg, s);
+            let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s)?;
+            close(s);
             assert_eq!(-x, y);
         }
 
@@ -137,11 +143,11 @@ fn nice_calc_works() {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose!(CalcOp::Add, s)?;
-            let s = send(x, s)?;
-            let s = send(y, s)?;
+            let s = choose!(CalcOp::Add, s);
+            let s = send(x, s);
+            let s = send(y, s);
             let (z, s) = recv(s)?;
-            close(s)?;
+            close(s);
             assert_eq!(x.wrapping_add(y), z);
         }
 
@@ -149,7 +155,6 @@ fn nice_calc_works() {
 
     }().is_ok());
 }
-
 
 // Test cancellation.
 
@@ -160,7 +165,8 @@ fn cancel_recv_works() {
 
     assert!(|| -> Result<(), Box<Error>> {
 
-        cancel(s)
+        cancel(s);
+        Ok(())
 
     }().is_ok());
 
@@ -172,13 +178,15 @@ fn cancel_send_works() {
 
     let (other_thread, s) = fork_with_thread_id(
         move |s: Recv<(), End>| {
-            cancel(s)
+            cancel(s);
+            Ok(())
         });
 
     assert!(|| -> Result<(), Box<Error>> {
 
-        let s = send((), s)?;
-        close(s)
+        let s = send((), s);
+        close(s);
+        Ok(())
 
     }().is_err());
 
@@ -192,12 +200,16 @@ fn cancel_send_works() {
 fn delegation_works() {
     let (other_thread1, s) = fork_with_thread_id(nice_calc_server);
     let (other_thread2, u) = fork_with_thread_id(
-        move |u: Recv<NiceCalcClient<i32>, End>| {cancel(u)});
+        move |u: Recv<NiceCalcClient<i32>, End>| {
+            cancel(u);
+            Ok(())
+    });
 
     assert!(|| -> Result<(), Box<Error>> {
 
-        let u = send(s, u)?;
-        close(u)
+        let u = send(s, u);
+        close(u);
+        Ok(())
 
     }().is_err());
 
@@ -216,10 +228,10 @@ fn closure_works() {
 
         // Create a closure which uses the session.
         let f = move |x: i32| -> Result<i32, Box<Error>> {
-            let s = choose!(CalcOp::Neg, s)?;
-            let s = send(x, s)?;
+            let s = choose!(CalcOp::Neg, s);
+            let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s)?;
+            close(s);
             Ok(y)
         };
 
@@ -253,8 +265,9 @@ fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>
             nice_sum_server_accum(s, x.wrapping_add(y))
         },
         SumOp::Done(s) => {
-            let s = send(x, s)?;
-            close(s)
+            let s = send(x, s);
+            close(s);
+            Ok(())
         },
     })
 }
@@ -263,14 +276,14 @@ fn nice_sum_client_accum(s: NiceSumClient<i32>, mut xs: Vec<i32>)
                          -> Result<i32, Box<Error>> {
     match xs.pop() {
         Option::Some(x) => {
-            let s = choose!(SumOp::More, s)?;
-            let s = send(x, s)?;
+            let s = choose!(SumOp::More, s);
+            let s = send(x, s);
             nice_sum_client_accum(s, xs)
         },
         Option::None => {
-            let s = choose!(SumOp::Done, s)?;
+            let s = choose!(SumOp::Done, s);
             let (sum, s) = recv(s)?;
-            close(s)?;
+            close(s);
             Ok(sum)
         },
     }
@@ -306,13 +319,15 @@ fn deadlock_loop() {
             // Let's trick the reachability checker
             if false { break; }
         }
-        let s = send((), s)?;
-        close(s)
+        let s = send((), s);
+        close(s);
+        Ok(())
     });
 
     || -> Result<(), Box<Error>> {
         let ((), s) = recv(s)?;
-        close(s)
+        close(s);
+        Ok(())
     }().unwrap();
 }
 
@@ -327,7 +342,8 @@ fn deadlock_forget() {
 
     || -> Result<(), Box<Error>> {
         let ((), s) = recv(s)?;
-        close(s)
+        close(s);
+        Ok(())
     }().unwrap();
 }
 
@@ -338,15 +354,17 @@ fn deadlock_new() {
     let (s1, r1) = <Send<(), End>>::new();
     let r2 = fork(move |s2: Send<(), End>| {
         let (x, r1) = recv(r1)?;
-        let s2 = send(x, s2)?;
-        close(r1)?;
-        close(s2)
+        let s2 = send(x, s2);
+        close(r1);
+        close(s2);
+        Ok(())
     });
 
     || -> Result<(), Box<Error>> {
         let (x, r2) = recv(r2)?;
-        let s1 = send(x, s1)?;
-        close(r2)?;
-        close(s1)
+        let s1 = send(x, s1);
+        close(r2);
+        close(s1);
+        Ok(())
     }().unwrap();
 }
