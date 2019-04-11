@@ -20,8 +20,8 @@ enum CalcOp {
 
 fn calc_server(s: CalcSrv) -> Result<(), Box<Error>> {
     offer!(s, {
-        CalcOp::Done(End) => {
-            Ok(())
+        CalcOp::Done(s) => {
+            close(s)
         },
         CalcOp::Neg(s) => {
             let (x, s) = recv(s)?;
@@ -46,7 +46,8 @@ fn main() {
             let s = select!(CalcOp::Neg, s)?;
             let s = send(6, s)?;
             let (y, s) = recv(s)?;
-            let End = select!(CalcOp::Done, s)?;
+            let s = select!(CalcOp::Done, s)?;
+            close(s)?;
             assert_eq!(-6, y);
         }
 
@@ -57,7 +58,8 @@ fn main() {
             let s = send(4, s)?;
             let s = send(5, s)?;
             let (z, s) = recv(s)?;
-            let End = select!(CalcOp::Done, s)?;
+            let s = select!(CalcOp::Done, s)?;
+            close(s)?;
             assert_eq!(9, z);
         }
 
