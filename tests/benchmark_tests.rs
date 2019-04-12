@@ -30,28 +30,29 @@ mod rusty_variation_bench {
     fn calc_server(s: CalcSrv) -> Result<(), Box<Error>> {
         ::rusty_variation::offer!(s, {
             CalcOp::CLOSE(s) => {
-                close(s)
+                close(s);
+                Ok(())
             },
             CalcOp::ADD(s) => {
                 let (x, s) = recv(s)?;
                 let (y, s) = recv(s)?;
-                let s = send(x + y, s)?;
+                let s = send(x + y, s);
                 calc_server(s)
             },
             CalcOp::NEGATE(s) => {
                 let (x, s) = recv(s)?;
-                let s = send(-x, s)?;
+                let s = send(-x, s);
                 calc_server(s)
             },
             CalcOp::SQRT(s) => {
                 let (x, s) = recv(s)?;
-                let s = send(x.sqrt(), s)?;
+                let s = send(x.sqrt(), s);
                 calc_server(s)
             },
             CalcOp::EVAL(s) => {
                 let (f, s) = recv(s)?;
                 let (x, s) = recv(s)?;
-                let s = send(f(x), s)?;
+                let s = send(f(x), s);
                 calc_server(s)
             },
         })
@@ -59,12 +60,13 @@ mod rusty_variation_bench {
 
     fn neg_client(s: CalcCli) -> Result<(), Box<Error>> {
         let n = thread_rng().gen();
-        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s)?;
-        let s = send(n, s)?;
+        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s);
+        let s = send(n, s);
         let (n_, s) = recv(s)?;
         assert_eq!(-n, n_);
-        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s)?;
-        close(s)
+        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s);
+        close(s);
+        Ok(())
     }
 
     #[bench]
