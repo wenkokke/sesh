@@ -188,7 +188,7 @@ fn cancel_send_works() {
         close(s);
         Ok(())
 
-    }().is_err());
+    }().is_ok());
 
     assert!(other_thread.join().is_ok());
 }
@@ -211,7 +211,7 @@ fn delegation_works() {
         close(u);
         Ok(())
 
-    }().is_err());
+    }().is_ok());
 
     assert!(other_thread1.join().is_err());
     assert!(other_thread2.join().is_ok());
