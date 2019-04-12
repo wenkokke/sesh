@@ -6,6 +6,7 @@ use std::error::Error;
 use std::marker;
 use std::mem;
 use std::thread::{JoinHandle, spawn};
+use std::panic;
 use crossbeam_channel::{Sender, Receiver, bounded};
 use either::Either;
 
@@ -111,6 +112,9 @@ where
 {
     let (there, here) = Session::new();
     let other_thread = spawn(move || {
+        panic::set_hook(Box::new(|_info| {
+            // do nothing
+        }));
         match p(there) {
             Ok(()) => (),
             Err(e) => panic!("{}", e.description()),
