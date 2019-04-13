@@ -1,4 +1,5 @@
 \usepackage{cmll}
+\usepackage{setspace}
 \usepackage{marvosym}
 \renewcommand{\mvchr}[1]{\mbox{\mvs\symbol{#1}}}
 \usepackage{mdframed}
@@ -16,11 +17,11 @@
 \newcommand{\ty}[1]{\textcolor{tycolor}{#1}}
 \newcommand{\tmty}[2]{\tm{#1}:\ty{#2}}
 \newcommand{\seq}[3]{#1\vdash\tmty{#2}{#3}}
-\newcommand{\sep}[0]{\quad{\mid}\quad}
+\newcommand{\sep}[0]{\;\mid\;}
 
 \newcommand{\ftm}[2][]{\ensuremath{%
     \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
-    \colorlet{tmp}{.}\color{stcolor}\right\rrbracket\color{tmp}}}
+    \colorlet{tmp}{.}\color{stcolor}\right\rrbracket_{\!#1}\color{tmp}}}
 
 % GV syntax
 
@@ -73,17 +74,24 @@
 
 \newcommand{\gvFlagMain}[0]{\ensuremath{\st{\bullet}}}
 \newcommand{\gvFlagChild}[0]{\ensuremath{\st{\circ}}}
-\newcommand{\gvThread}[2]{\ensuremath{\st{#1}\,\tm{#2}}}
+\newcommand{\gvThread}[2]{\ensuremath{\tm{#1}\tm{#2}}}
 \newcommand{\gvMain}[1]{\ensuremath{\gvThread{\gvFlagMain}{#1}}}
 \newcommand{\gvChild}[1]{\ensuremath{\gvThread{\gvFlagChild}{#1}}}
-\newcommand{\gvRes}[3]{\ensuremath{\st{(}\st{\nu}\tm{#1}\tm{#2}\st{)}\,\tm{#3}}}
+\newcommand{\gvRes}[2]{\ensuremath{\st{(}\st{\nu}\tm{#1}\st{)}\,\tm{#2}}}
 \newcommand{\gvPar}[2]{\ensuremath{\st{(}\tm{#1}\;\st{\parallel}\;\tm{#2}\st{)}}}
 \newcommand{\gvHalt}[0]{\ensuremath{\st{\mathbf{halt}}}}
 \newcommand{\gvZap}[1]{\ensuremath{\st{\Lightning}\tm{#1}}}
 \newcommand{\gvBuf}[4]{\ensuremath{\tm{#1}\st{(}\tm{#2}\st{)}{\leftrightsquigarrow}\tm{#3}\st{(}\tm{#4}\st{)}}}
 \newcommand{\gvHole}[0]{\ensuremath{[]}}
+\newcommand{\gvVecEmp}[0]{\ensuremath{\epsilon}}
 \newcommand{\gvVec}[1]{%
     \colorlet{tmp}{.}\color{stcolor}\vec{\color{tmp}\tm{#1}\color{tmp}}}
+
+\newcommand{\gvPlug}[2]{\ensuremath{\tm{#1}[\tm{#2}]}}
+\newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\{\tm{#2}/\tm{#3}\}}}
+\newcommand{\gvRedArr}[0]{\mathrel{\st{\longrightarrow}}}
+\newcommand{\gvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
+\newcommand{\gvRedPure}[2]{\ensuremath{\tm{#1}\gvRedArrPure\tm{#2}}}
 
 % RV syntax
 
@@ -93,7 +101,7 @@
 \newcommand{\rvTySum}[2]{\texttt{%
     \ty{Either}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
 \newcommand{\rvTyPair}[2]{\texttt{\st{(}\ty{#1}\st{,}\;\ty{#2}\st{)}}}
-\newcommand{\rvTyOption}[1]{\texttt{%
+\newcommand{\rvTyOpt}[1]{\texttt{%
     \ty{Option}\st{<}\ty{#1}\st{>}}}
 
 \newcommand{\rvTySend}[2]{\texttt{\ty{Send}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
@@ -120,29 +128,48 @@
 \newcommand{\rvFork}[1]{\rvApp{\st{{fork}}}{#1}}
 \newcommand{\rvSend}[2]{\rvApp{\st{{send}}}{#1\st{,}\;#2}}
 \newcommand{\rvRecv}[1]{\rvApp{\st{{recv}}}{#1}}
+\newcommand{\rvClose}[1]{\rvApp{\st{close}}{#1}}
 \newcommand{\rvSome}[1]{\rvApp{\st{Some}}{#1}}
 \newcommand{\rvNone}[0]{\texttt{\st{None}}}
-\newcommand{\rvCaseOption}[4]{\texttt{%
+\newcommand{\rvCaseOpt}[4]{\texttt{%
     \st{\textbf{match}}\;\tm{#1}\;\st{\{}\;%
     \rvSome{#2}\;\st{$\Rightarrow$}\;\tm{#3}\st{,}\;%
     \rvNone{}\;\st{$\Rightarrow$}\;\tm{#4}\;\st{\}}}}
-\newcommand{\rvPanic}[0]{\texttt{\st{panic!()}}}
 
-\newcommand{\rvBind}[2]{\rvApp{\st{\textbf{bind}}}{#1\st{,}\;#2}}
+\newcommand{\rvTry}[3]{\texttt{%
+    \st{\textbf{let}}\;\tm{#1}\;\st{=}\;\tm{#2}\st{?;}\;\tm{#3}}}
+\newcommand{\rvTryDef}[3]{\rvCaseOpt{#2}{#1}{#3}{\rvNone}}
 
-\newcommand{\rvTry}[3]{\texttt{\st{\textbf{let}}\;\tm{#1}\;\st{=}\;\tm{#2}\st{?;}\;\tm{#3}}}
-\newcommand{\rvTryDef}[3]{\rvCaseOption{#2}{#1}{#3}{\rvNone}}
+\newcommand{\rvFlagMain}[0]{\ensuremath{\st{\bullet}}}
+\newcommand{\rvFlagChild}[0]{\ensuremath{\st{\circ}}}
+\newcommand{\rvThread}[2]{\ensuremath{\tm{#1}\,\tm{#2}}}
+\newcommand{\rvMain}[1]{\ensuremath{\rvThread{\rvFlagMain}{#1}}}
+\newcommand{\rvChild}[1]{\ensuremath{\rvThread{\rvFlagChild}{#1}}}
+\newcommand{\rvPanic}[0]{\rvApp{\st{panic!\!}}{}}
 
-\newcommand{\rvFlagMain}[0]{\texttt{\st{$\bullet$}}}
-\newcommand{\rvFlagChild}[0]{\texttt{\st{$\circ$}}}
-\newcommand{\rvThread}[2]{\texttt{\st{#1}\,\tm{#2}}}
-\newcommand{\rvMain}[1]{\texttt{\rvThread{\rvFlagMain}{#1}}}
-\newcommand{\rvChild}[1]{\texttt{\rvThread{\rvFlagChild}{#1}}}
-\newcommand{\rvRes}[3]{\rvLetPair{#1}{#2}{\rvApp{\st{{new}}}{}}{#3}}
-\newcommand{\rvPar}[2]{\rvApp{\st{{spawn}}}{#1}\st{;}\;\tm{#2}}
-\newcommand{\rvHalt}[0]{\texttt{\rvApp{\st{{panic!}}}{}}}
-\newcommand{\rvZap}[1]{\texttt{\st{\Lightning}\tm{#1}}}
-\newcommand{\rvBuf}[2]{\texttt{\tm{#1}\st{[}\tm{#2}\st{]}}}
-\newcommand{\rvHole}[0]{\texttt{\st{[]}}}
-\newcommand{\rvVec}[1]{%
-    \colorlet{tmp}{.}\color{stcolor}\vec{\color{tmp}\tm{#1}\color{tmp}}}
+\newcommand{\rvHole}[0]{\ensuremath{[]}}
+
+\newcommand{\rvConf}[1]{\ensuremath{\mathcal{#1}}}
+
+\newcommand{\rvHeap}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\rvHeapEmp}[0]{\ensuremath{\varnothing}}
+\newcommand{\rvHeapData}[4]{%
+    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\tm{#4}}
+\newcommand{\rvHeapDisc}[3]{%
+    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\rvMemDisc}
+
+\newcommand{\rvArc}[3]{\rvApp{\st{arc}}{\tm{#1}\st{,}\;\st{$\langle$}\tm{#2}\st{,}\;\tm{#3}\st{$\rangle$}}}
+
+\newcommand{\rvMem}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\rvMemEmp}[0]{\texttt{\st{EMPTY}}}
+\newcommand{\rvMemData}[2]{\rvApp{\st{DATA}}{\tm{#1}\st{,}\;\tm{#2}}}
+\newcommand{\rvMemDisc}[0]{\texttt{\st{DISCONNECTED}}}
+
+\newcommand{\rvPlug}[2]{\texttt{\tm{#1}\st{[}\tm{#2}\st{]}}}
+\newcommand{\rvSub}[3]{\texttt{\tm{#1}\st{\{}\tm{#2}\st{/}\tm{#3}\st{\}}}}
+\newcommand{\rvRedTup}[3][\rvConf{C}]{%
+    \st{\langle}\tm{#2}\parallel\tm{#1}\if\relax\detokenize{#3}\else\st{,}\;\fi\tm{#3}\st{\rangle}}
+\newcommand{\rvRedArr}[0]{\mathrel{\st{\longrightarrow}}}
+\newcommand{\rvRed}[5][\rvConf{C}]{\rvRedTup[#1]{#2}{#3}\rvRedArr\rvRedTup[#1]{#4}{#5}}
+\newcommand{\rvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
+\newcommand{\rvRedPure}[2]{\texttt{\tm{#1}}\rvRedArrPure\texttt{\tm{#2}}}
