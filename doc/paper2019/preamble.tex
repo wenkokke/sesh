@@ -153,10 +153,10 @@
 
 \newcommand{\rvHeap}[1]{\ensuremath{\mathcal{#1}}}
 \newcommand{\rvHeapEmp}[0]{\ensuremath{\varnothing}}
-\newcommand{\rvHeapData}[4]{%
-    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\tm{#4}}
-\newcommand{\rvHeapDisc}[3]{%
-    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\rvMemDisc}
+\newcommand{\rvHeapData}[3]{%
+    \tm{#1}\st{,}\;\tm{#2}\;\st{\mapsto}\;\tm{#3}}
+\newcommand{\rvHeapDisc}[2]{%
+    \tm{#1}\st{,}\;\tm{#2}\;\st{\mapsto}\;\rvMemDisc}
 
 \newcommand{\rvArc}[3]{\rvApp{\st{arc}}{\tm{#1}\st{,}\;\st{$\langle$}\tm{#2}\st{,}\;\tm{#3}\st{$\rangle$}}}
 
