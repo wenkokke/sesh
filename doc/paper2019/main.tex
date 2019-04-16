@@ -26,8 +26,7 @@
 
 \begin{figure*}
   \begin{mdframed}
-    \centering
-    \(
+    \[
     \begin{array}{llrl}
       \text{Types}
       &\ty{A}, \ty{B}, \ty{C}
@@ -73,10 +72,26 @@
              \mid \rvSend{M}{N}
              \mid \rvRecv{M}
     \end{array}
-    \)
+    \]
   \end{mdframed}
   \caption{Rusty Variation, terms and types.}
   \label{fig:rv}
+\end{figure*}
+
+\begin{figure*}
+  \begin{mdframed}
+    \[
+    \begin{array}{lcl}
+      \rvTry{x}{M}{N} &::=& \rvTryDef{x}{M}{N}
+      \\
+      \rvTry{\rvUnit}{M}{N} &::=& \rvTryDef{x}{M}{\rvLetUnit{x}{N}}
+      \\
+      \rvTry{\rvPair{x}{y}}{M}{N} &::=& \rvTryDef{z}{M}{\rvLetPair{x}{y}{z}{N}}
+    \end{array}
+    \]
+  \end{mdframed}
+  \caption{Rusty Variation, the \texttt{try!} macro.}
+  \label{fig:rv-try}
 \end{figure*}
 
 \begin{figure*}
@@ -392,15 +407,15 @@
       \begin{center}
         \begin{prooftree*}
           \AXC{}
-          \RightLabel{\textsc{E-PanicChild}}
+          \RightLabel{\textsc{E-HaltChild}}
           \UIC{$
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvChild{\rvNone}}
+            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvChild{\rvVar{V}}}
             \rvRedArr
             \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
         \end{prooftree*}%
         \begin{prooftree*}
           \AXC{}
-          \RightLabel{\textsc{E-PanicMain}}
+          \RightLabel{\textsc{E-HaltMain}}
           \UIC{$
             \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvMain{\rvNone}}
             \rvRedArr
@@ -408,8 +423,7 @@
         \end{prooftree*}
       \end{center}
       \begin{prooftree}
-        \AXC{$
-          \rvRedPure{M}{M'}$}
+        \AXC{$\rvRedPure{M}{M'}$}
         \RightLabel{\textsc{E-LiftM}}
         \UIC{$
           \rvRedTup{\rvHeap{H}}{M}
@@ -484,120 +498,116 @@
 \begin{figure*}
   \begin{mdframed}
     \centering
+    \setstretch{2.5}
+    
     \begin{prooftree*}
       \AXC{}
-      \RightLabel{\textsc{Var}}
+      \RightLabel{\textsc{T-Var}}
       \UIC{$\seq{\tmty{x}{A}}{\gvVar{x}}{A}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}\st{,}\;\ty{A}}{M}{B}$}
-      \RightLabel{\textsc{Abs}}
+      \RightLabel{\textsc{T-Abs}}
       \UIC{$\seq{\ty{\Gamma}}{\gvAbs[A]{x}{M}}{\gvTyFun{A}{B}}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyFun{A}{B}}$}
       \AXC{$\seq{\ty{\Delta}}{N}{A}$}
-      \RightLabel{\textsc{App}}
+      \RightLabel{\textsc{T-App}}
       \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvApp{M}{N}}{B}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{}
-      \RightLabel{\textsc{Unit}}
+      \RightLabel{\textsc{T-Unit}}
       \UIC{$\seq{\emptyenv}{\gvUnit}{\gvTyUnit}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyUnit}$}
       \AXC{$\seq{\ty{\Delta}}{N}{A}$}
-      \RightLabel{\textsc{LetUnit}}
+      \RightLabel{\textsc{T-LetUnit}}
       \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvLetUnit{M}{N}}{A}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
       \AXC{$\seq{\ty{\Delta}}{N}{B}$}
-      \RightLabel{\textsc{Pair}}
+      \RightLabel{\textsc{T-Pair}}
       \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvPair{M}{N}}{\gvTyPair{A}{B}}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyPair{A}{B}}$}
       \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}\st{,}\;\tmty{y}{B}}{N}{C}$}
-      \RightLabel{\textsc{LetPair}}
+      \RightLabel{\textsc{T-LetPair}}
       \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvLetPair{x}{y}{M}{N}}{C}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
-      \RightLabel{\textsc{Left}}
+      \RightLabel{\textsc{T-Left}}
       \UIC{$\seq{\ty{\Gamma}}{\gvInl{M}}{\gvTySum{A}{B}}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{B}$}
-      \RightLabel{\textsc{Right}}
+      \RightLabel{\textsc{T-Right}}
       \UIC{$\seq{\ty{\Gamma}}{\gvInr{M}}{\gvTySum{A}{B}}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{L}{\gvTySum{A}{B}}$}
       \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{C}$}
       \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{y}{B}}{N}{C}$}
-      \RightLabel{\textsc{CaseSum}}
+      \RightLabel{\textsc{T-CaseSum}}
       \TIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvCaseSum{L}{x}{M}{y}{N}}{C}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
-      \RightLabel{\textsc{Cancel}}
+      \RightLabel{\textsc{T-Cancel}}
       \UIC{$\seq{\ty{\Gamma}}{\gvCancel{M}}{\gvUnit}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{L}{A}$}
       \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{B}$}
       \AXC{$\seq{\ty{\Gamma}}{N}{B}$}
-      \RightLabel{\textsc{Try}}
+      \RightLabel{\textsc{T-Try}}
       \TIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvTry{L}{x}{M}{N}}{B}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{}
-      \RightLabel{\textsc{Raise}}
+      \RightLabel{\textsc{T-Raise}}
       \UIC{$\seq{\emptyenv}{\gvRaise}{A}$}
     \end{prooftree*}
-
-    \vspace*{0.5\baselineskip}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyFun{S}{\gvTyUnit}}$}
-      \RightLabel{\textsc{Fork}}
+      \RightLabel{\textsc{T-Fork}}
       \UIC{$\seq{\ty{\Gamma}}{\gvFork{M}}{\gvDual{S}}$}
+    \end{prooftree*}    
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyEnd}$}
+      \RightLabel{\textsc{T-Close}}
+      \UIC{$\seq{\ty{\Gamma}}{\gvClose{M}}{\gvUnit}$}
     \end{prooftree*}
+    
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
       \AXC{$\seq{\ty{\Delta}}{N}{\gvTySend{A}{S}}$}
-      \RightLabel{\textsc{Send}}
+      \RightLabel{\textsc{T-Send}}
       \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\gvSend{M}{N}}{S}$}
     \end{prooftree*}
     \begin{prooftree*}
       \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyRecv{A}{S}}$}
-      \RightLabel{\textsc{Recv}}
+      \RightLabel{\textsc{T-Recv}}
       \UIC{$\seq{\ty{\Gamma}}{\gvRecv{M}}{\gvPair{A}{S}}$}
     \end{prooftree*}
-    \begin{prooftree*}
-      \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyEnd}$}
-      \RightLabel{\textsc{Close}}
-      \UIC{$\seq{\ty{\Gamma}}{\gvClose{M}}{\gvUnit}$}
-    \end{prooftree*}
-
-    \vspace*{1.5\baselineskip}
+    
     \(
-      \gvDual{\gvTySend{A}{S}}\;=\;\gvTyRecv{A}{\gvDual{S}}
-      \quad
-      \gvDual{\gvTyRecv{A}{S}}\;=\;\gvTySend{A}{\gvDual{S}}
-      \quad
-      \gvDual{\gvTyEnd}\;=\;\gvTyEnd
+    \gvDual{\gvTySend{A}{S}}\;=\;\gvTyRecv{A}{\gvDual{S}}
+    \quad
+    \gvDual{\gvTyRecv{A}{S}}\;=\;\gvTySend{A}{\gvDual{S}}
+    \quad
+    \gvDual{\gvTyEnd}\;=\;\gvTyEnd
     \)
   \end{mdframed}
 \caption{Exceptional GV, typing rules.}
@@ -628,10 +638,10 @@
       &::= & \gvFlagMain \mid \gvFlagChild
       \\
       \text{Configurations}
-      &\tm{C}, \tm{D}
+      &\tm{\gvConf{C}}, \tm{\gvConf{D}}, \tm{\gvConf{E}}
       &::= & \tm{\phi}\tm{M}
-             \mid \gvRes{a}{C}
-             \mid \gvPar{C}{D}
+             \mid \gvRes{a}{\gvConf{C}}
+             \mid \gvPPar{\gvConf{C}}{\gvConf{D}}
              \mid \gvHalt
              \mid \gvZap{a}
              \mid \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}
@@ -686,14 +696,14 @@
              \mid \gvCancel{P}
       \\
       \text{Thread contexts}
-      &\tm{F}
+      &\tm{\gvConf{F}}
       &::= & \tm{\phi}\tm{E}
       \\
       \text{Configuration contexts}
-      &\tm{G}
+      &\tm{\gvConf{G}}
       &::= & \gvHole
-             \mid \gvRes{a}{G}
-             \mid \gvPar{G}{C}
+             \mid \gvRes{a}{\gvConf{G}}
+             \mid \gvPPar{\gvConf{G}}{\gvConf{C}}
     \end{array}
     \)
   \end{mdframed}
@@ -703,7 +713,7 @@
 
 \begin{figure*}
     \begin{mdframed}
-    \centering
+    {Term reduction}
     \[\!\!%
       \setlength{\arraycolsep}{4pt}%
       \begin{array}{llcl}
@@ -744,6 +754,127 @@
           \quad\text{if}\;\gvRedPure{M}{M'}
       \end{array}
     \]
+    {Configuration equivalence}
+    \[
+      \gvPar{\gvConf{C}}{\gvPPar{\gvConf{D}}{\gvConf{E}}}
+      \equiv
+      \gvPar{\gvPPar{\gvConf{C}}{\gvConf{D}}}{\gvConf{E}}
+      \qquad
+      \gvPar{\gvConf{C}}{\gvConf{D}}
+      \equiv
+      \gvPar{\gvConf{D}}{\gvConf{C}}
+      \qquad
+      \gvRes{a}{\gvRes{b}{\gvConf{C}}}
+      \equiv
+      \gvRes{b}{\gvRes{a}{\gvConf{C}}}
+    \]
+    \[
+      \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}
+      \equiv
+      \gvBuf{b}{\gvVec{W}}{a}{\gvVec{V}}
+      \qquad
+      \gvPar{\gvConf{C}}{\gvRes{a}{\gvConf{D}}}
+      \equiv
+      \gvRes{a}{\gvPPar{\gvConf{C}}{\gvConf{D}}},
+      \quad\text{if}\;\gvVar{a}\notin\text{fv}{(\gvConf{C})}
+    \]
+    {Configuration reduction}
+    \[\!\!%
+      \setlength{\arraycolsep}{4pt}%
+      \begin{array}{llcl}
+        \textsc{E-Fork}
+        & \multicolumn{3}{l}{%
+          {\gvPlug{\gvConf{F}}{\gvFork{\gvAbs[A]{x}{M}}}}
+          \gvRedArr
+          {\gvRes{a}{\gvRes{b}{\gvPPar{\gvPlug{\gvConf{F}}{a}}{%
+          \gvPar{\gvChild{\gvSub{M}{b}{x}}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}},
+          \quad\text{where \tm{a}, \tm{b} are fresh}}
+        \\
+        \textsc{E-Send}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvSend{U}{a}}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{a}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}\gvVecAdd\gvVar{U}}}}
+        \\
+        \textsc{E-Recv}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRecv{U}}}{%
+          \gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvPair{U}{a}}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        \\
+        \textsc{E-Close}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvClose{a}}}{%
+          \gvPar{\gvPlug{\gvConf{F'}}{\gvClose{b}}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{%
+          \gvPlug{\gvConf{F'}}{\gvUnit}}}
+        \\
+        \textsc{E-Cancel}
+        & {\gvPlug{\gvConf{F}}{\gvCancel{a}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{\gvZap{a}}}
+        \\
+        \textsc{E-Zap}
+        & {\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvZap{a}}{\gvPar{\gvZap{U}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}
+        \\
+        \textsc{E-CloseZap}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvClose{a}}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRaise}}{\gvPar{\gvZap{a}}{%
+          \gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}
+        \\
+        \textsc{E-RecvZap}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRecv{a}}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVec{W}}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRaise}}{\gvPar{\gvZap{a}}{%
+          \gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVec{W}}}}}}
+        \\
+        \textsc{E-Raise}
+        & {\gvPlug{\gvConf{F}}{\gvTry{\gvPlug{P}{\gvRaise}}{x}{M}{N}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{N}}{\gvZap{P}}}
+        \\
+        \textsc{E-RaiseChild}
+        & {\gvChild{\gvPlug{P}{\gvRaise}}}
+        & \gvRedArr
+        & {\gvZap{P}}
+        \\
+        \textsc{E-RaiseMain}
+        & {\gvMain{\gvPlug{P}{\gvRaise}}}
+        & \gvRedArr
+        & {\gvPar{\gvHalt}{\gvZap{P}}}
+        \\
+        \textsc{E-HaltChild}
+        & {\gvPar{\gvConf{C}}{\gvChild{\gvUnit}}}
+        & \gvRedArr
+        & {\tm{\gvConf{C}}}
+        \\
+        \textsc{E-GC}
+        & {\gvPar{\gvRes{a}{\gvRes{b}{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}}{\gvConf{C}}}
+        & \gvRedArr
+        & {\tm{\gvConf{C}}}
+        \\
+        \textsc{E-LiftC}
+        & {\gvPlug{\gvConf{G}}{\gvConf{C}}}
+        & \gvRedArr
+        & {\gvPlug{\gvConf{G}}{\gvConf{D}}},
+          \quad{\tm{\gvConf{C}}\gvRedArr\tm{\gvConf{D}}}
+        \\
+        \textsc{E-LiftM}
+        & {\gvThread{\phi}{M}}
+        & \gvRedArr
+        & {\gvThread{\phi}{M'}},
+          \quad{\gvThread{\phi}{M}\gvRedArrPure\gvThread{\phi}{M'}}
+      \end{array} 
+    \]
   \end{mdframed}
   \caption{Exceptional GV, reduction semantics.}
   \label{fig:egv-reduction}
@@ -751,17 +882,6 @@
 
 \begin{figure*}
   \begin{mdframed}
-    {The \texttt{try!} macro}
-    \[
-    \begin{array}{lcl}
-      \rvTry{x}{M}{N} &::=& \rvTryDef{x}{M}{N}
-      \\
-      \rvTry{\rvUnit}{M}{N} &::=& \rvTryDef{x}{M}{\rvLetUnit{x}{N}}
-      \\
-      \rvTry{\rvPair{x}{y}}{M}{N} &::=& \rvTryDef{z}{M}{\rvLetPair{x}{y}{z}{N}}
-    \end{array}
-    \]
-
     {Translation on types}
     \begin{gather*}
       \ftm{\gvTyUnit} = \rvTyUnit
@@ -792,7 +912,7 @@
       & = & \rvSome{\rvAbs[\ftm{A}]{x}{\ftm{M}}}
       \\
       \ftm{\gvApp{M}{N}}
-      & = & \rvTry{f}{\ftm{M}}{{\rvTry{x}{\ftm{N}}{\rvSome{\rvApp{f}{x}}}}}
+      & = & \rvTry{f}{\ftm{M}}{{\rvTry{x}{\ftm{N}}{\rvApp{f}{x}}}}
       \\
       \ftm{\gvUnit}
       & = & \rvSome{\rvUnit}
@@ -838,60 +958,60 @@
     \end{array}
     \]
 
-    {Translation on runtime syntax}
+    {Translation on configurations}
     \[
-      \ftm{\tm{C}} = \rvRedTup[{\ftm[\rvConf{C}]{C}}]{\ftm[\rvHeap{H}]{C}}{},
-      \quad\text{where} \; \rho = \rho_{\tiny\tm{C}} \; \text{and} \; \zeta = \zeta_{\tiny\tm{C}}
+      \ftm{\tm{C}} = \rvRedTup[{\ftmc{C}}]{\ftmh{C}}{},
+      \quad\text{where} \; \rho = \ren{\tm{C}} \; \text{and} \; \zeta = \zap{\tm{C}}
     \]
     \[
       \setlength{\arraycolsep}{2pt}%
       \begin{array}{lcllcllcl}
-        \rho_{\gvThread{\phi}{M}} & = & \varnothing
-        & \quad \rho_{\tiny\gvRes{a}{C}} & = & \rho_{\tiny\tm{C}}
-        & \quad \rho_{\tiny\gvPar{C}{D}} & = & \rho_{\tiny\tm{C}} \cup \rho_{\tiny\tm{D}}
+        \ren{\gvThread{\phi}{M}} & = & \varnothing
+        & \quad \ren{\gvRes{a}{C}} & = & \ren{\tm{C}}
+        & \quad \ren{\,\gvPPar{C}{D}} & = & \ren{\tm{C}} \cup \ren{\tm{D}}
         \\
-        \rho_{\tiny\gvHalt} & = & \varnothing
-        & \quad \rho_{\tiny\,\gvZap{a}} & = & \varnothing
-        & \quad \rho_{\tiny\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \{ \tm{a}\mapsto\tm{a},\tm{b}\mapsto\tm{a}\}
+        \ren{\gvHalt} & = & \varnothing
+        & \quad \ren{\gvZap{a}} & = & \varnothing
+        & \quad \ren{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \{ \tm{a}\mapsto\tm{a},\tm{b}\mapsto\tm{a}\}
         \vspace*{1ex}
         \\
-        \zeta_{\gvThread{\phi}{M}} & = & \varnothing
-        & \quad \zeta_{\tiny\gvRes{a}{C}} & = & \zeta_{\tiny\tm{C}}
-        & \quad \zeta_{\tiny\gvPar{C}{D}} & = & \zeta_{\tiny\tm{C}} \cup \zeta_{\tiny\tm{D}}
+        \zap{\gvThread{\phi}{M}} & = & \varnothing
+        & \quad \zap{\gvRes{a}{C}} & = & \zap{\tm{C}}
+        & \quad \zap{\gvPPar{C}{D}} & = & \zap{\tm{C}} \cup \zap{\tm{D}}
         \\
-        \zeta_{\tiny\gvHalt} & = & \varnothing
-        & \quad \zeta_{\tiny\,\gvZap{a}} & = & \{\rho(\gvVar{a})\}
-        & \quad \zeta_{\tiny\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \varnothing
+        \zap{\gvHalt} & = & \varnothing
+        & \quad \zap{\gvZap{a}} & = & \{\rho(\gvVar{a})\}
+        & \quad \zap{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \varnothing
         \vspace*{2ex}
         \\
-        \ftm[\rvConf{C}]{\gvThread{\phi}{M}}
+        \ftmc{\gvThread{\phi}{M}}
         & = & \{\rvThread{\phi}{\ftm{M}}\}
-        & \quad \ftm[\rvConf{C}]{\gvRes{a}{C}}
-        & = & \ftm[\rvConf{C}]{\tm{C}}
-        & \quad \ftm[\rvConf{C}]{\gvPar{C}{D}}
-        & = & \ftm[\rvConf{C}]{\tm{C}}\cup\ftm[\rvConf{C}]{\tm{D}}
+        & \quad \ftmc{\gvRes{a}{C}}
+        & = & \ftmc{\tm{C}}
+        & \quad \ftmc{\gvPar{C}{D}}
+        & = & \ftmc{\tm{C}}\cup\ftmc{\tm{D}}
         \\
-        \ftm[\rvConf{C}]{\gvHalt}
+        \ftmc{\gvHalt}
         & = & \{\rvPanic\}
-        & \quad \ftm[\rvConf{C}]{\gvZap{a}}
+        & \quad \ftmc{\gvZap{a}}
         & = & \varnothing
-        & \quad \ftm[\rvConf{C}]{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
+        & \quad \ftmc{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
         & = & \varnothing
         \vspace*{1ex}
         \\
-        \ftm[\rvHeap{H}]{\gvThread{\phi}{M}}
+        \ftmh{\gvThread{\phi}{M}}
         & = & \varnothing
-        & \quad \ftm[\rvHeap{H}]{\gvRes{a}{C}}
-        & = & \ftm[\rvHeap{H}]{\tm{C}}
-        & \quad \ftm[\rvHeap{H}]{\gvPar{C}{D}}
-        & = & \ftm[\rvHeap{H}]{\tm{C}}\cup\ftm[\rvHeap{H}]{\tm{D}}
+        & \quad \ftmh{\gvRes{a}{C}}
+        & = & \ftmh{\tm{C}}
+        & \quad \ftmh{\gvPar{C}{D}}
+        & = & \ftmh{\tm{C}}\cup\ftmh{\tm{D}}
         \\
-        \ftm[\rvHeap{H}]{\gvHalt}
+        \ftmh{\gvHalt}
         & = & \varnothing
-        & \quad \ftm[\rvHeap{H}]{\gvZap{a}}
+        & \quad \ftmh{\gvZap{a}}
         & = & \varnothing
-        & \quad \ftm[\rvHeap{H}]{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
-        & = & \rvHeap{H}(\rho(\gvVar{a}), \gvVec{V}\cdot\gvVec{W})
+        & \quad \ftmh{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
+        & = & \rvHeap{H}(\rho(\gvVar{a}), \gvVec{V}\gvVecAdd\gvVec{W})
       \end{array}
     \]
     \vspace*{0.5ex}
@@ -901,7 +1021,7 @@
         & = & \{\rho(\gvVar{a}) \mapsto \rvMemEmp\},
         & \text{if} \; \gvVar{a} \notin \zeta
         \\
-        \rvHeap{H}(\gvVar{a}, \gvVar{U}\cdot\gvVec{V})
+        \rvHeap{H}(\gvVar{a}, \gvVar{U}\gvVecAdd\gvVec{V})
         & = & \{\rho(\gvVar{a}) \mapsto \rvMemData{U}{b}\} \cup \rvHeap{H}(\gvVar{b}, \gvVec{V}),
         & \text{if} \; \gvVar{a} \notin \zeta,
           \text{where} \; \gvVar{b} \; \text{is fresh}
@@ -917,5 +1037,107 @@
   {Translation from Exceptional GV to Rusty Variation.}
   \label{fig:egv2rv}
 \end{figure*}
+
+\begin{lemma}\label{lem:translate-term}
+  If $\tm{M}\gvRedArrPure\tm{M'}$,
+  then $\tm{\ftm{M}}\gvRedArrPure\tm{\ftm{M}}$.
+\end{lemma}
+\begin{proof}
+  By induction on the reduction.
+\end{proof}
+
+\begin{lemma}
+  If $\tm{\ftm{M}}\gvRedArrPure\tm{N}$,
+  then there exists a term $\tm{M'}$ such that
+  $\tm{M}\gvRedArrPure\tm{M'}$ and
+  $\tm{N}\gvRedArrPure\tm{\ftm{M'}}$.
+\end{lemma}
+\begin{proof}
+  By induction on the reduction.
+\end{proof}
+
+\begin{lemma}\label{lem:translate-raise}
+  $\ftm{\gvPlug{P}{\gvRaise}}\gvRedArrPure^{\star}\rvNone$
+\end{lemma}
+\begin{proof}
+  By induction on $\tm{P}$. Apply \textsc{E-None}.
+\end{proof}
+
+\begin{theorem}
+  If $\tm{\gvConf{C}}$ is well-typed and $\tm{\gvConf{C}}\gvRedArr\tm{\gvConf{C'}}$,
+  then \\ $\tm{\ftm{\gvConf{C}}}\gvRedArr^{+}\tm{\ftm{\gvConf{C'}}}$.
+\end{theorem}
+\begin{proof}
+  By case analysis on the reduction.
+  We handle applications of \textsc{E-LiftC} in each case as a prefix $\tm{\gvConf{G}}$.
+  \begin{itemize}
+  \item
+    Case \textsc{E-Cancel}.
+    We have $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvCancel{a}}}$. As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{a}$ does not occur in $\tm{\gvConf{G}}$ or $\tm{\gvConf{F}}$, and $\ren{\gvConf{C}}(\gvVar{a})$ occurs at most once in $\ftm{\gvConf{C}}$, \ie $\ftmArc{a}{\gvConf{C}}\le{1}$. \\
+    Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-Zap}.
+    We have $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}$. For each channel $\gvVar{c}$ in $\gvVar{U}$: As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{c}$ does not occur in $\gvConf{G}$, $\ren{\gvConf{C}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-Raise}.
+    We have \\
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvTry{\gvPlug{P}{\gvRaise}}{x}{M}{N}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-None}. \\
+    For each channel $\gvVar{c}$ in $\gvVar{P}$: As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{c}$ does not occur in $\gvConf{G}$, and $\ren{\gvConf{C}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-RaiseChild}.
+    We have
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvChild{\gvPlug{P}{\gvRaise}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-HaltChild}.
+  \item
+    Case \textsc{E-RaiseMain}.
+    We have
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvMain{\gvPlug{P}{\gvRaise}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-HaltMain}.
+  \item
+    Case \textsc{E-GC}.
+    We have \\
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPar{\gvRes{a}{\gvRes{b}{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}}{\gvConf{C}}}$. \\
+    As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{a}$ and $\gvVar{b}$ do not occur in $\gvConf{G}$, and $\ren{\gvConf{C}}(\gvVar{a})$ does not occur in $\ftm{\gvConf{G}}$, \ie $\ftmArc{a}{\gvConf{C}}=0$. \\
+    Apply \textsc{E-GC}.
+  \item
+    Case \textsc{E-LiftM}.
+    Apply \cref{lem:translate-term} and \textsc{E-LiftM}.
+  \end{itemize}
+  In the remaining cases, apply the rule of the same name.
+\end{proof}
+
+\begin{theorem}
+  If $\tm{\ftm{\gvConf{C}}}\gvRedArr\tm{\gvConf{D}}$,
+  then there exists a term $\tm{\gvConf{C'}}$ such that
+  $\tm{\gvConf{C}}\equiv\gvRedArr^{+}\tm{\gvConf{C'}}$ and
+  $\tm{\gvConf{D}}\gvRedArr^{\star}\tm{\ftm{\gvConf{C'}}}$. 
+\end{theorem}
+\begin{proof}
+  By case analysis on the reduction.
+  \begin{itemize}
+  \item
+    Case \textsc{E-Zap}. There must be a channel $\gvVar{a}$ for which $\ftmArc{a}{\gvConf{C}}\le{1}$. There are two cases:
+    \begin{itemize}
+    \item 
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvCancel{a}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{\gvZap{a}}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Cancel}. \\ For $\rvConf{D}\rvRedArr^{\star}\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}$. \\ Let $\gvConf{C'} = \gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvPar{\gvZap{U}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Zap}. \\ For $\rvConf{D}\rvRedArr^{\star}\ftm{\gvConf{C'}}$: For each channel $\gvVar{c}$ in $\gvVar{U}$: $\tm{\gvConf{C'}}$ is well-typed, by subject reduction, and hence $\gvVar{c}$ does not occur in $\gvConf{G}$, and $\ren{\gvConf{C'}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+    \end{itemize}
+  \item
+    Case \textsc{E-GC}. We have $\ftmArc{a}{\gvConf{C}}=0$. Therefore, there must be two channels $\tm{a}$ and $\tm{b}$ which are cancelled, \ie $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvRes{a}{\gvRes{b}{\gvPar{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}{\gvConf{E}}}}}$. \\ Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\
+    For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Zap} repeatedly. Apply \textsc{E-GC}. \\
+    For $\rvConf{D}\gvRedArr^{\star}\ftm{\gvConf{C'}}$: Apply reflexivity.
+  \item
+    Case \textsc{E-HaltChild}.
+    There are two cases:
+    \begin{itemize}
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvConf{E}}{\gvChild{\gvUnit}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-HaltChild}. \\ For $\rvConf{D}\rvRedArr\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvConf{E}}{\gvChild{\gvRaise}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-RaiseChild}. \\ For $\rvConf{D}\rvRedArr\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \end{itemize}
+  \end{itemize}
+\end{proof}
 
 \end{document}

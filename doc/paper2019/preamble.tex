@@ -1,7 +1,13 @@
+\usepackage{xspace}
+\newcommand*{\eg}{e.g.\@\xspace}
+\newcommand*{\ie}{i.e.\@\xspace}
+
+\usepackage{hyperref}
+\usepackage{cleveref}
+
 \usepackage{cmll}
 \usepackage{setspace}
-\usepackage{marvosym}
-\renewcommand{\mvchr}[1]{\mbox{\mvs\symbol{#1}}}
+\usepackage{stmaryrd}
 \usepackage{mdframed}
 \usepackage{mathtools}
 \usepackage{bussproofs}
@@ -17,11 +23,14 @@
 \newcommand{\ty}[1]{\textcolor{tycolor}{#1}}
 \newcommand{\tmty}[2]{\tm{#1}:\ty{#2}}
 \newcommand{\seq}[3]{#1\vdash\tmty{#2}{#3}}
+\newcommand{\cseq}[2]{#1\vdash\ty{#2}}
 \newcommand{\sep}[0]{\;\mid\;}
 
 \newcommand{\ftm}[2][]{\ensuremath{%
     \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
     \colorlet{tmp}{.}\color{stcolor}\right\rrbracket_{\!#1}\color{tmp}}}
+\newcommand{\ftmc}[1]{\ensuremath{\ftm{#1}_{\!\scriptscriptstyle\st{\mathcal{C}}}}}
+\newcommand{\ftmh}[1]{\ensuremath{\ftm{#1}_{\!\scriptscriptstyle\st{\mathcal{H}}}}}
 
 % GV syntax
 
@@ -78,17 +87,24 @@
 \newcommand{\gvMain}[1]{\ensuremath{\gvThread{\gvFlagMain}{#1}}}
 \newcommand{\gvChild}[1]{\ensuremath{\gvThread{\gvFlagChild}{#1}}}
 \newcommand{\gvRes}[2]{\ensuremath{\st{(}\st{\nu}\tm{#1}\st{)}\,\tm{#2}}}
-\newcommand{\gvPar}[2]{\ensuremath{\st{(}\tm{#1}\;\st{\parallel}\;\tm{#2}\st{)}}}
+\newcommand{\gvPar}[2]{\ensuremath{\tm{#1}\;\st{\parallel}\;\tm{#2}}}
+\newcommand{\gvPPar}[2]{\ensuremath{\st{(}\gvPar{#1}{#2}\st{)}}}
 \newcommand{\gvHalt}[0]{\ensuremath{\st{\mathbf{halt}}}}
-\newcommand{\gvZap}[1]{\ensuremath{\st{\Lightning}\tm{#1}}}
+\newcommand{\gvZap}[1]{\ensuremath{\st{\lightning}\tm{#1}}}
 \newcommand{\gvBuf}[4]{\ensuremath{\tm{#1}\st{(}\tm{#2}\st{)}{\leftrightsquigarrow}\tm{#3}\st{(}\tm{#4}\st{)}}}
 \newcommand{\gvHole}[0]{\ensuremath{[]}}
+\newcommand{\gvVecAdd}[0]{\ensuremath{\,{\cdot}\,}}
 \newcommand{\gvVecEmp}[0]{\ensuremath{\epsilon}}
 \newcommand{\gvVec}[1]{%
     \colorlet{tmp}{.}\color{stcolor}\vec{\color{tmp}\tm{#1}\color{tmp}}}
 
-\newcommand{\gvPlug}[2]{\ensuremath{\tm{#1}[\tm{#2}]}}
-\newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\{\tm{#2}/\tm{#3}\}}}
+\newcommand{\ren}[1]{\ensuremath{\st{\rho}_{\scriptstyle#1}}}
+\newcommand{\zap}[1]{\ensuremath{\st{\zeta}_{\scriptstyle#1}}}
+
+\newcommand{\gvConf}[1]{\ensuremath{\tm{\mathcal{#1}}}}
+
+\newcommand{\gvPlug}[2]{\ensuremath{\tm{#1}\st{[}\tm{#2}\st{]}}}
+\newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\st{\{}\tm{#2}\st{/}\tm{#3}\st{\}}}}
 \newcommand{\gvRedArr}[0]{\mathrel{\st{\longrightarrow}}}
 \newcommand{\gvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
 \newcommand{\gvRedPure}[2]{\ensuremath{\tm{#1}\gvRedArrPure\tm{#2}}}
@@ -149,7 +165,7 @@
 
 \newcommand{\rvHole}[0]{\ensuremath{[]}}
 
-\newcommand{\rvConf}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\rvConf}[1]{\ensuremath{\tm{\mathcal{#1}}}}
 
 \newcommand{\rvHeap}[1]{\ensuremath{\mathcal{#1}}}
 \newcommand{\rvHeapEmp}[0]{\ensuremath{\varnothing}}
@@ -159,6 +175,7 @@
     \tm{#1}\st{,}\;\tm{#2}\;\st{\mapsto}\;\rvMemDisc}
 
 \newcommand{\rvArc}[3]{\rvApp{\st{arc}}{\tm{#1}\st{,}\;\st{$\langle$}\tm{#2}\st{,}\;\tm{#3}\st{$\rangle$}}}
+\newcommand{\ftmArc}[2]{\rvApp{\st{arc}}{$\ren{#2}\st{(}\tm{#1}\st{)}$\st{,}\;\ftm{#2}}}
 
 \newcommand{\rvMem}[1]{\ensuremath{\mathcal{#1}}}
 \newcommand{\rvMemEmp}[0]{\texttt{\st{EMPTY}}}
