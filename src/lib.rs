@@ -12,6 +12,7 @@ use either::Either;
 
 /// The session types supported.
 
+#[must_use]
 #[derive(Debug)]
 pub struct End {
     sender: Sender<()>,
@@ -97,9 +98,10 @@ pub fn cancel<T>(x: T) -> () {
     mem::drop(x);
 }
 
-pub fn close(s: End) -> () {
+pub fn close(s: End) -> Result<(), Box<Error>> {
     s.sender.send(()).unwrap_or(());
-    s.receiver.recv().unwrap_or(());
+    s.receiver.recv()?;
+    Ok(())
 }
 
 
@@ -149,30 +151,30 @@ where
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
     let (e, s) = recv(s)?;
-    close(s);
+    close(s)?;
     e.either(f, g)
 }
 
-pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> S1
+pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S1, Box<Error>>
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S1::new();
     let s = send(Either::Left(there), s);
-    close(s);
-    here
+    close(s)?;
+    Ok(here)
 }
 
-pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> S2
+pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S2, Box<Error>>
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S2::new();
     let s = send(Either::Right(there), s);
-    close(s);
-    here
+    close(s)?;
+    Ok(here)
 }
 
 
@@ -183,7 +185,7 @@ macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
         (move || -> Result<_, _> {
             let (l, s) = recv($session)?;
-            close(s);
+            close(s)?;
             match l {
                 $(
                     $pat => $result,
@@ -195,12 +197,16 @@ macro_rules! offer {
 
 #[macro_export]
 macro_rules! choose {
-    ($label:path, $session:expr) => {{
-        let (here, there) = <_ as Session>::new();
-        let s = send($label(there), $session);
-        close(s);
-        here
-    }};
+    ($label:path, $session:expr) => {
+        (move || -> Result<_, _> {
+            let (here, there) = <_ as Session>::new();
+            let s = send($label(there), $session);
+            match close(s) {
+                Ok(()) => Ok(here),
+                Err(e) => Err(e),
+            }
+        })()
+    };
 }
 
 

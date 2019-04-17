@@ -18,11 +18,11 @@ fn ping_works() {
 
         let s = fork(move |s: Send<(), End>| {
             let s = send((), s);
-            close(s);
+            close(s)?;
             Ok(())
         });
         let ((), s) = recv(s)?;
-        close(s);
+        close(s)?;
         Ok(())
 
     }().is_ok());
@@ -45,14 +45,14 @@ fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
                  |s: NegServer<i32>| {
                      let (x, s) = recv(s)?;
                      let s = send(-x, s);
-                     close(s);
+                     close(s)?;
                      Ok(())
                  },
                  |s: AddServer<i32>| {
                      let (x, s) = recv(s)?;
                      let (y, s) = recv(s)?;
                      let s = send(x.wrapping_add(y), s);
-                     close(s);
+                     close(s)?;
                      Ok(())
                  })
 }
@@ -67,10 +67,10 @@ fn simple_calc_works() {
         {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
-            let s = choose_left::<_, AddClient<i32>>(s);
+            let s = choose_left::<_, AddClient<i32>>(s)?;
             let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s);
+            close(s)?;
             assert_eq!(-x, y);
         }
 
@@ -79,11 +79,11 @@ fn simple_calc_works() {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose_right::<NegClient<i32>, _>(s);
+            let s = choose_right::<NegClient<i32>, _>(s)?;
             let s = send(x, s);
             let s = send(y, s);
             let (z, s) = recv(s)?;
-            close(s);
+            close(s)?;
             assert_eq!(x.wrapping_add(y), z);
         }
 
@@ -107,14 +107,14 @@ fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
         CalcOp::Neg(s) => {
             let (x, s) = recv(s)?;
             let s = send(-x, s);
-            close(s);
+            close(s)?;
             Ok(())
         },
         CalcOp::Add(s) => {
             let (x, s) = recv(s)?;
             let (y, s) = recv(s)?;
             let s = send(x.wrapping_add(y), s);
-            close(s);
+            close(s)?;
             Ok(())
         },
     })
@@ -131,10 +131,10 @@ fn nice_calc_works() {
         {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
-            let s = choose!(CalcOp::Neg, s);
+            let s = choose!(CalcOp::Neg, s)?;
             let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s);
+            close(s)?;
             assert_eq!(-x, y);
         }
 
@@ -143,11 +143,11 @@ fn nice_calc_works() {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose!(CalcOp::Add, s);
+            let s = choose!(CalcOp::Add, s)?;
             let s = send(x, s);
             let s = send(y, s);
             let (z, s) = recv(s)?;
-            close(s);
+            close(s)?;
             assert_eq!(x.wrapping_add(y), z);
         }
 
@@ -185,10 +185,10 @@ fn cancel_send_works() {
     assert!(|| -> Result<(), Box<Error>> {
 
         let s = send((), s);
-        close(s);
+        close(s)?;
         Ok(())
 
-    }().is_ok());
+    }().is_err());
 
     assert!(other_thread.join().is_ok());
 }
@@ -208,10 +208,10 @@ fn delegation_works() {
     assert!(|| -> Result<(), Box<Error>> {
 
         let u = send(s, u);
-        close(u);
+        close(u)?;
         Ok(())
 
-    }().is_ok());
+    }().is_err());
 
     assert!(other_thread1.join().is_err());
     assert!(other_thread2.join().is_ok());
@@ -228,10 +228,10 @@ fn closure_works() {
 
         // Create a closure which uses the session.
         let f = move |x: i32| -> Result<i32, Box<Error>> {
-            let s = choose!(CalcOp::Neg, s);
+            let s = choose!(CalcOp::Neg, s)?;
             let s = send(x, s);
             let (y, s) = recv(s)?;
-            close(s);
+            close(s)?;
             Ok(y)
         };
 
@@ -266,24 +266,25 @@ fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>
         },
         SumOp::Done(s) => {
             let s = send(x, s);
-            close(s);
+            close(s)?;
             Ok(())
         },
-    })
+    })?;
+    Ok(())
 }
 
 fn nice_sum_client_accum(s: NiceSumClient<i32>, mut xs: Vec<i32>)
                          -> Result<i32, Box<Error>> {
     match xs.pop() {
         Option::Some(x) => {
-            let s = choose!(SumOp::More, s);
+            let s = choose!(SumOp::More, s)?;
             let s = send(x, s);
             nice_sum_client_accum(s, xs)
         },
         Option::None => {
-            let s = choose!(SumOp::Done, s);
+            let s = choose!(SumOp::Done, s)?;
             let (sum, s) = recv(s)?;
-            close(s);
+            close(s)?;
             Ok(sum)
         },
     }
@@ -320,13 +321,13 @@ fn deadlock_loop() {
             if false { break; }
         }
         let s = send((), s);
-        close(s);
+        close(s)?;
         Ok(())
     });
 
     || -> Result<(), Box<Error>> {
         let ((), s) = recv(s)?;
-        close(s);
+        close(s)?;
         Ok(())
     }().unwrap();
 }
@@ -342,7 +343,7 @@ fn deadlock_forget() {
 
     || -> Result<(), Box<Error>> {
         let ((), s) = recv(s)?;
-        close(s);
+        close(s)?;
         Ok(())
     }().unwrap();
 }
@@ -355,16 +356,16 @@ fn deadlock_new() {
     let r2 = fork(move |s2: Send<(), End>| {
         let (x, r1) = recv(r1)?;
         let s2 = send(x, s2);
-        close(r1);
-        close(s2);
+        close(r1)?;
+        close(s2)?;
         Ok(())
     });
 
     || -> Result<(), Box<Error>> {
         let (x, r2) = recv(r2)?;
         let s1 = send(x, s1);
-        close(r2);
-        close(s1);
+        close(r2)?;
+        close(s1)?;
         Ok(())
     }().unwrap();
 }
