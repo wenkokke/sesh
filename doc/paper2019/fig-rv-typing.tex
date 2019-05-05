@@ -1,0 +1,100 @@
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \setstretch{2.5}
+
+    \begin{prooftree*}
+      \AXC{$\tmty{x}{A}\in\ty{\Gamma}$}
+      \RightLabel{\textsc{T-Var}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvVar{x}}{A}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}\st{,}\;\tmty{x}{A}}{M}{B}$}
+      \RightLabel{\textsc{T-Abs}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvAbs[A]{x}{M}}{\rvTyFun{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyFun{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{A}$}
+      \RightLabel{\textsc{T-App}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvApp{M}{N}}{B}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{}
+      \RightLabel{\textsc{T-Unit}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvUnit}{\rvTyUnit}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyUnit}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{A}$}
+      \RightLabel{\textsc{T-LetUnit}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetUnit{M}{N}}{A}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{B}$}
+      \RightLabel{\textsc{T-Pair}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvPair{M}{N}}{\rvTyPair{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyPair{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}\st{,}\;\tmty{y}{B}}{N}{C}$}
+      \RightLabel{\textsc{T-LetPair}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetPair{x}{y}{M}{N}}{C}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \RightLabel{\textsc{T-Left}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvInl{M}}{\rvTySum{A}{B}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{B}$}
+      \RightLabel{\textsc{T-Right}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvInr{M}}{\rvTySum{A}{B}}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{L}{\rvTySum{A}{B}}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{C}$}
+      \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{y}{B}}{N}{C}$}
+      \RightLabel{\textsc{T-CaseSum}}
+      \TIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvCaseSum{L}{x}{M}{y}{N}}{C}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyFun{S}{\rvTyOpt{\rvTyUnit}}}$}
+      \RightLabel{\textsc{T-Fork}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvFork{M}}{\rvDual{S}}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyEnd}$}
+      \RightLabel{\textsc{T-Close}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvClose{M}}{\rvTyOpt{\rvTyUnit}}$}
+    \end{prooftree*}
+
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+      \AXC{$\seq{\ty{\Delta}}{N}{\rvTySend{A}{S}}$}
+      \RightLabel{\textsc{T-Send}}
+      \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvSend{M}{N}}{S}$}
+    \end{prooftree*}
+    \begin{prooftree*}
+      \AXC{$\seq{\ty{\Gamma}}{M}{\rvTyRecv{A}{S}}$}
+      \RightLabel{\textsc{T-Recv}}
+      \UIC{$\seq{\ty{\Gamma}}{\rvRecv{M}}{\rvTyOpt{\rvPair{A}{S}}}$}
+    \end{prooftree*}
+
+    \(
+      \rvDual{\rvTySend{A}{S}} = \rvTyRecv{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyRecv{A}{S}} = \rvTySend{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyEnd} = \rvTyEnd
+    \)
+  \end{mdframed}
+\caption{Rusty Variation, typing rules.}
+\label{fig:rv-typing}
+\end{figure*}

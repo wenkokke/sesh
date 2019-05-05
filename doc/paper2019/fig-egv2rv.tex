@@ -1,0 +1,164 @@
+\begin{figure*}
+  \begin{mdframed}
+    {Translation on types}
+    \begin{gather*}
+      \ftm{\gvTyUnit} = \rvTyUnit
+      \quad
+      \ftm{\gvTyFun{A}{B}} = \rvTyFun{\ftm{A}}{\rvTyOpt{\ftm{B}}}
+      \quad
+      \ftm{\gvTySum{A}{B}} = \rvTySum{\ftm{A}}{\ftm{B}}
+      \quad
+      \ftm{\gvTyPair{A}{B}} = \rvTyPair{\ftm{A}}{\ftm{B}}
+      \\
+      \ftm{\gvTySend{A}{S}} = \rvTySend{\ftm{A}}{\ftm{S}}
+      \quad
+      \ftm{\gvTyRecv{A}{S}} = \rvTyRecv{\ftm{A}}{\ftm{S}}
+      \quad
+      \ftm{\gvTyEnd} = \rvTyEnd
+    \end{gather*}
+
+    {Translation on terms}
+    \[
+    \begin{array}{lcl}
+      \ftm{\gvVar{x}}
+      & = & \rvSome{\rvVar{x}}
+      \\
+      \ftm{\gvVar{a}}
+      & = & \rvSome{$\st{\rho}\st{(}\gvVar{a}\st{)}$}
+      \\
+      \ftm{\gvAbs[A]{x}{M}}
+      & = & \rvSome{\rvAbs[\ftm{A}]{x}{\ftm{M}}}
+      \\
+      \ftm{\gvApp{M}{N}}
+      & = & \rvTry{f}{\ftm{M}}{{\rvTry{x}{\ftm{N}}{\rvApp{f}{x}}}}
+      \\
+      \ftm{\gvUnit}
+      & = & \rvSome{\rvUnit}
+      \\
+      \ftm{\gvLetUnit{M}{N}}
+      & = & \rvTry{\rvUnit}{\ftm{M}}{{\ftm{N}}}
+      \\
+      \ftm{\gvPair{M}{N}}
+      & = & \rvTry{x}{\ftm{M}}{{\rvTry{y}{\ftm{N}}{{\rvSome{\rvPair{x}{y}}}}}}
+      \\
+      \ftm{\gvLetPair{x}{y}{M}{N}}
+      & = & \rvTry{\rvPair{x}{y}}{\ftm{M}}{\ftm{N}}
+      \\
+      \ftm{\gvInl{M}}
+      & = & \rvTry{x}{\ftm{M}}{\rvSome{\rvInl{x}}}
+      \\
+      \ftm{\gvInr{M}}
+      & = & \rvTry{x}{\ftm{M}}{\rvSome{\rvInr{x}}}
+      \\
+      \ftm{\gvCaseSum{L}{x}{M}{y}{N}}
+      & = & \rvTry{z}{L}{{\rvCaseSum{z}{x}{\ftm{M}}{y}{\ftm{N}}}}
+      \\
+      \ftm{\gvCancel{M}}
+      & = & \rvTry{\rvUnit}{\ftm{M}}{\rvSome{\rvUnit}}
+      \\
+      \ftm{\gvTry{L}{x}{M}{N}}
+      & = & \rvCaseOpt{\ftm{L}}{x}{\ftm{M}}{\ftm{N}}
+      \\
+      \ftm{\gvRaise}
+      & = & \rvNone
+      \\
+      \ftm{\gvFork{M}}
+      & = & \rvSome{\rvFork{\ftm{M}}}
+      \\
+      \ftm{\gvSend{M}{N}}
+      & = & \rvTry{x}{\ftm{M}}{{\rvTry{y}{\ftm{N}}{\rvSome{\rvSend{x}{y}}}}}
+      \\
+      \ftm{\gvRecv{M}}
+      & = & \rvTry{x}{\ftm{M}}{{\rvRecv{x}}}
+      \\
+      \ftm{\gvClose{M}}
+      & = & \rvSome{\rvClose{M}}
+      \\[1ex]
+      \multicolumn{3}{c}{%
+      \text{(where all variables introduced on the right-hand side are fresh)}}
+    \end{array}
+    \]
+
+    {Translation on configurations}
+    \[
+      \ftm{\tm{C}} = \rvRedTup[{\ftmc{C}}]{\ftmh{C}}{},
+      \quad\text{where} \; \rho = \ren{\tm{C}} \; \text{and} \; \zeta = \zap{\tm{C}}
+    \]
+    \[
+      \setlength{\arraycolsep}{2pt}%
+      \begin{array}{lcllcllcl}
+        \ren{\gvThread{\phi}{M}} & = & \varnothing
+        & \quad \ren{\gvRes{a}{C}} & = & \ren{\tm{C}}
+        & \quad \ren{\,\gvPPar{C}{D}} & = & \ren{\tm{C}} \cup \ren{\tm{D}}
+        \\
+        \ren{\gvHalt} & = & \varnothing
+        & \quad \ren{\gvZap{a}} & = & \varnothing
+        & \quad \ren{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \{ \tm{a}\mapsto\tm{a},\tm{b}\mapsto\tm{a}\}
+        \vspace*{1ex}
+        \\
+        \zap{\gvThread{\phi}{M}} & = & \varnothing
+        & \quad \zap{\gvRes{a}{C}} & = & \zap{\tm{C}}
+        & \quad \zap{\gvPPar{C}{D}} & = & \zap{\tm{C}} \cup \zap{\tm{D}}
+        \\
+        \zap{\gvHalt} & = & \varnothing
+        & \quad \zap{\gvZap{a}} & = & \{\rho(\gvVar{a})\}
+        & \quad \zap{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}} & = & \varnothing
+        \vspace*{2ex}
+        \\
+        \ftmc{\gvThread{\phi}{M}}
+        & = & \{\rvThread{\phi}{\ftm{M}}\}
+        & \quad \ftmc{\gvRes{a}{C}}
+        & = & \ftmc{\tm{C}}
+        & \quad \ftmc{\gvPar{C}{D}}
+        & = & \ftmc{\tm{C}}\cup\ftmc{\tm{D}}
+        \\
+        \ftmc{\gvHalt}
+        & = & \{\rvPanic\}
+        & \quad \ftmc{\gvZap{a}}
+        & = & \varnothing
+        & \quad \ftmc{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
+        & = & \varnothing
+        \vspace*{1ex}
+        \\
+        \ftmh{\gvThread{\phi}{M}}
+        & = & \varnothing
+        & \quad \ftmh{\gvRes{a}{C}}
+        & = & \ftmh{\tm{C}}
+        & \quad \ftmh{\gvPar{C}{D}}
+        & = & \ftmh{\tm{C}}\cup\ftmh{\tm{D}}
+        \\
+        \ftmh{\gvHalt}
+        & = & \varnothing
+        & \quad \ftmh{\gvZap{a}}
+        & = & \varnothing
+        & \quad \ftmh{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}
+        & = & \rvHeap{H}(\rho(\gvVar{a}), \gvVec{V}\gvVecAdd\gvVec{W})
+      \end{array}
+    \]
+    \vspace*{0.5ex}
+    \[
+      \setlength{\arraycolsep}{2pt}%
+      \begin{array}{lcll}
+        \rvHeap{H}(\gvVar{a}, \gvVecEmp)
+        & = & \{\rho(\gvVar{a}) \mapsto \rvMemEmp\},
+        & \text{if} \; \gvVar{a} \notin \zeta
+        \\
+        \rvHeap{H}(\gvVar{a}, \gvVar{U}\gvVecAdd\gvVec{V})
+        & = & \{\rho(\gvVar{a}) \mapsto \rvMemData{U}{b}\} \cup \rvHeap{H}(\gvVar{b}, \gvVec{V}),
+        & \text{if} \; \gvVar{a} \notin \zeta,
+          \text{where} \; \gvVar{b} \; \text{is fresh}
+        \\
+        \rvHeap{H}(\gvVar{a}, \gvVec{V})
+        & = & \{\rho(\gvVar{a}) \mapsto \rvMemDisc\},
+        & \text{if} \; \gvVar{a} \in \zeta
+        \\[1ex]
+        \multicolumn{4}{c}{%
+        \text{(where all variables in the source configuration are distinct)}}
+      \end{array}
+    \]
+  \end{mdframed}
+  \caption%
+  [Translation EGV to RV.]%
+  {Translation from Exceptional GV to Rusty Variation.}
+  \label{fig:egv2rv}
+\end{figure*}

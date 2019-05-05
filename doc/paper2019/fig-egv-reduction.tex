@@ -1,0 +1,168 @@
+\begin{figure*}
+    \begin{mdframed}
+    {Term reduction}
+    \[\!\!%
+      \setlength{\arraycolsep}{4pt}%
+      \begin{array}{llcl}
+        \textsc{E-Lam}
+        & {\gvApp{\gvAbs[A]{x}{M}}{V}}
+        & \gvRedArrPure
+        & {\gvSub{M}{x}{V}}
+        \\
+        \textsc{E-Unit}
+        & {\gvLetUnit{\gvUnit}{M}}
+        & \gvRedArrPure
+        & {\tm{M}}
+        \\
+        \textsc{E-Pair}
+        & {\gvLetPair{x}{y}{\gvPair{V}{W}}{M}}
+        & \gvRedArrPure
+        & {\gvSub{M}{\tm{x}\st{,}\;\tm{y}}{\tm{V}\st{,}\;\tm{W}}}
+        \\
+        \textsc{E-Inl}
+        & {\gvCaseSum{\gvInl{V}}{x}{M}{y}{N}}
+        & \gvRedArrPure
+        & {\gvSub{M}{x}{V}}
+        \\
+        \textsc{E-Inr}
+        & {\gvCaseSum{\gvInr{V}}{x}{M}{y}{N}}
+        & \gvRedArrPure
+        & {\gvSub{N}{y}{V}}
+        \\
+        \textsc{E-Val}
+        & {\gvTry{V}{x}{M}{N}}
+        & \gvRedArrPure
+        & {\gvSub{M}{x}{V}}
+        \\
+        \textsc{E-Lift}
+        & {\gvPlug{E}{M}}
+        & \gvRedArrPure
+        & {\gvPlug{E}{M'}}\st{,}
+          \quad\text{if}\;\gvRedPure{M}{M'}
+      \end{array}
+    \]
+    {Configuration equivalence}
+    \[
+      \gvPar{\gvConf{C}}{\gvPPar{\gvConf{D}}{\gvConf{E}}}
+      \equiv
+      \gvPar{\gvPPar{\gvConf{C}}{\gvConf{D}}}{\gvConf{E}}
+      \qquad
+      \gvPar{\gvConf{C}}{\gvConf{D}}
+      \equiv
+      \gvPar{\gvConf{D}}{\gvConf{C}}
+      \qquad
+      \gvRes{a}{\gvRes{b}{\gvConf{C}}}
+      \equiv
+      \gvRes{b}{\gvRes{a}{\gvConf{C}}}
+    \]
+    \[
+      \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}
+      \equiv
+      \gvBuf{b}{\gvVec{W}}{a}{\gvVec{V}}
+      \qquad
+      \gvPar{\gvConf{C}}{\gvRes{a}{\gvConf{D}}}
+      \equiv
+      \gvRes{a}{\gvPPar{\gvConf{C}}{\gvConf{D}}},
+      \quad\text{if}\;\gvVar{a}\notin\text{fv}{(\gvConf{C})}
+    \]
+    {Configuration reduction}
+    \[\!\!%
+      \setlength{\arraycolsep}{4pt}%
+      \begin{array}{llcl}
+        \textsc{E-Fork}
+        & \multicolumn{3}{l}{%
+          {\gvPlug{\gvConf{F}}{\gvFork{\gvAbs[A]{x}{M}}}}
+          \gvRedArr
+          {\gvRes{a}{\gvRes{b}{\gvPPar{\gvPlug{\gvConf{F}}{a}}{%
+          \gvPar{\gvChild{\gvSub{M}{b}{x}}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}},
+          \quad\text{where \tm{a}, \tm{b} are fresh}}
+        \\
+        \textsc{E-Send}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvSend{U}{a}}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{a}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}\gvVecAdd\gvVar{U}}}}
+        \\
+        \textsc{E-Recv}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRecv{U}}}{%
+          \gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvPair{U}{a}}}{%
+          \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        \\
+        \textsc{E-Close}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvClose{a}}}{%
+          \gvPar{\gvPlug{\gvConf{F'}}{\gvClose{b}}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{%
+          \gvPlug{\gvConf{F'}}{\gvUnit}}}
+        \\
+        \textsc{E-Cancel}
+        & {\gvPlug{\gvConf{F}}{\gvCancel{a}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{\gvZap{a}}}
+        \\
+        \textsc{E-Zap}
+        & {\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}
+        & \gvRedArr
+        & {\gvPar{\gvZap{a}}{\gvPar{\gvZap{U}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}
+        \\
+        \textsc{E-CloseZap}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvClose{a}}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRaise}}{\gvPar{\gvZap{a}}{%
+          \gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}
+        \\
+        \textsc{E-RecvZap}
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRecv{a}}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVec{W}}}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{\gvRaise}}{\gvPar{\gvZap{a}}{%
+          \gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVec{W}}}}}}
+        \\
+        \textsc{E-Raise}
+        & {\gvPlug{\gvConf{F}}{\gvTry{\gvPlug{P}{\gvRaise}}{x}{M}{N}}}
+        & \gvRedArr
+        & {\gvPar{\gvPlug{\gvConf{F}}{N}}{\gvZap{P}}}
+        \\
+        \textsc{E-RaiseChild}
+        & {\gvChild{\gvPlug{P}{\gvRaise}}}
+        & \gvRedArr
+        & {\gvZap{P}}
+        \\
+        \textsc{E-RaiseMain}
+        & {\gvMain{\gvPlug{P}{\gvRaise}}}
+        & \gvRedArr
+        & {\gvPar{\gvHalt}{\gvZap{P}}}
+        \\
+        \textsc{E-HaltChild}
+        & {\gvPar{\gvConf{C}}{\gvChild{\gvUnit}}}
+        & \gvRedArr
+        & {\tm{\gvConf{C}}}
+        \\
+        \textsc{E-GC}
+        & {\gvPar{\gvRes{a}{\gvRes{b}{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{%
+          \gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}}{\gvConf{C}}}
+        & \gvRedArr
+        & {\tm{\gvConf{C}}}
+        \\
+        \textsc{E-LiftC}
+        & {\gvPlug{\gvConf{G}}{\gvConf{C}}}
+        & \gvRedArr
+        & {\gvPlug{\gvConf{G}}{\gvConf{D}}},
+          \quad{\tm{\gvConf{C}}\gvRedArr\tm{\gvConf{D}}}
+        \\
+        \textsc{E-LiftM}
+        & {\gvThread{\phi}{M}}
+        & \gvRedArr
+        & {\gvThread{\phi}{M'}},
+          \quad{\gvThread{\phi}{M}\gvRedArrPure\gvThread{\phi}{M'}}
+      \end{array} 
+    \]
+  \end{mdframed}
+  \caption{Exceptional GV, reduction semantics.}
+  \label{fig:egv-reduction}
+\end{figure*}

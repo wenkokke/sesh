@@ -1,0 +1,78 @@
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \(
+    \begin{array}{llrl}
+      \text{Channels}
+      &\tm{a}, \tm{b}, \tm{c}
+      \\
+      \text{Terms}
+      &\tm{L}, \tm{M}, \tm{N}
+      &::= & \dots
+             \sep \tm{a}
+      \\
+      \text{Values}
+      &\tm{U}, \tm{V}, \tm{W}
+      &::= & \tm{a}
+             \sep \rvAbs[A]{x}{M}
+             \sep \rvUnit
+             \sep \rvPair{V}{W}
+             \sep \rvInl{V}
+             \sep \rvInr{V}
+      \\
+      \text{Memory}
+      &\tm{\rvMem{M}}
+      &::= & \rvMemEmp
+             \sep \rvMemData{V}{c}
+      \\
+      \text{Heaps}
+      &\tm{\rvHeap{H}}
+      &::= & \rvHeapEmp
+             \sep \rvHeapData{\rvHeap{H}}{a}{\rvMem{M}}
+             \sep \rvHeapDisc{\rvHeap{H}}{a}
+      \\
+      \text{Thread flags}
+      &\tm{\phi}
+      &::= & \rvFlagMain
+             \sep \rvFlagChild
+      \\
+      \text{Threads}
+      &\tm{T}
+      &::= & \rvThread{\phi}{M}
+             \sep \rvPanic
+      \\
+      \text{Configurations}
+      &\rvConf{C}, \rvConf{D}, \rvConf{E}
+      &    & \text{multiset of threads}
+      \\
+      \text{Evaluation contexts}
+      &\tm{E}
+      &::= & \rvHole
+             \sep \rvApp{E}{M}
+             \sep \rvApp{V}{E}
+             \sep \rvLetUnit{E}{M}
+             \sep \rvPair{E}{M}
+             \sep \rvPair{V}{E}
+             \sep \rvLetPair{x}{y}{E}{M}
+      \\
+      &
+      &\mid& \rvInl{E}
+             \sep \rvInr{E}
+             \sep \rvCaseSum{E}{x}{M}{y}{N}
+      \\
+      &
+      &\mid& \rvFork{E}
+             \sep \rvSend{E}{M}
+             \sep \rvSend{V}{E}
+             \sep \rvRecv{E}
+             \sep \rvClose{E}
+      \\
+      \text{Thread contexts}
+      &\tm{F}
+      &::= & \rvThread{\phi}{E}
+    \end{array}
+    \)
+  \end{mdframed}
+  \caption{Rusty Variation, runtime syntax.}
+  \label{fig:rv-runtime}
+\end{figure*}

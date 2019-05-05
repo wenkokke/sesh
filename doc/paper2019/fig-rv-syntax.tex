@@ -1,0 +1,50 @@
+\begin{figure*}
+  \begin{mdframed}
+    \[
+    \begin{array}{llrl}
+      \text{Types}
+      &\ty{A}, \ty{B}, \ty{C}
+      &::=& \rvTyUnit
+            \sep \rvTyFun{A}{B}
+            \sep \rvTySum{A}{B}
+            \sep \rvTyPair{A}{B}
+            \sep \texttt{\ty{S}}
+      \\
+      \text{Session types}
+      &\ty{S}, \ty{T}
+      &::=& \rvTySend{A}{S}
+            \sep \rvTyRecv{A}{S}
+            \sep \rvTyEnd
+      \\
+      \text{Variables}
+      &\tm{x}, \tm{y}, \tm{z}
+      \\
+      \text{Terms}
+      &\tm{L}, \tm{M}, \tm{N}
+      &::=& \rvVar{x}
+            \sep \rvAbs[A]{x}{M}
+            \sep \rvApp{M}{N}
+      \\
+      &
+      &\mid& \rvUnit
+             \sep \rvLetUnit{M}{N}
+     \\
+      &
+      &\mid& \rvPair{M}{N}
+             \sep \rvLetPair{x}{y}{M}{N}
+      \\
+      &
+      &\mid& \rvInl{M}
+             \sep \rvInr{M}
+             \sep \rvCaseSum{L}{x}{M}{x}{N}
+      \\
+      &
+      &\mid& \rvFork{M}
+             \sep \rvSend{M}{N}
+             \sep \rvRecv{M}
+    \end{array}
+    \]
+  \end{mdframed}
+  \caption{Rusty Variation, terms and types.}
+  \label{fig:rv-syntax}
+\end{figure*}

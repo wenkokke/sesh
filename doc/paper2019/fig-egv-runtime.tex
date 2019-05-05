@@ -1,0 +1,99 @@
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \(
+    \begin{array}{llrl}
+      \text{Channels}
+      &\tm{a}, \tm{b}, \tm{c}
+      \\
+      \text{Terms}
+      &\tm{L}, \tm{M}, \tm{N}
+      &::= & \dots
+             \sep \tm{a}
+      \\
+      \text{Values}
+      &\tm{U}, \tm{V}, \tm{W}
+      &::= & \tm{a}
+             \sep \gvAbs[A]{x}{M}
+             \sep \gvUnit
+             \sep \gvPair{V}{W}
+             \sep \gvInl{V}
+             \sep \gvInr{V}
+      \\
+      \text{Flags}
+      &\tm{\phi}
+      &::= & \gvFlagMain \sep \gvFlagChild
+      \\
+      \text{Configurations}
+      &\tm{\gvConf{C}}, \tm{\gvConf{D}}, \tm{\gvConf{E}}
+      &::= & \tm{\phi}\tm{M}
+             \sep \gvRes{a}{\gvConf{C}}
+             \sep \gvPPar{\gvConf{C}}{\gvConf{D}}
+             \sep \gvHalt
+             \sep \gvZap{a}
+             \sep \gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}
+      \\
+      \text{Evaluation contexts}
+      &\tm{E}
+      &::= & \gvHole
+             \sep \gvApp{E}{M}
+             \sep \gvApp{V}{E}
+             \sep \gvLetUnit{E}{M}
+             \sep \gvPair{E}{M}
+             \sep \gvPair{V}{E}
+             \sep \gvLetPair{x}{y}{E}{M}
+      \\
+      &
+      &\mid& \gvInl{E}
+             \sep \gvInr{E}
+             \sep \gvCaseSum{E}{x}{M}{y}{N}
+      \\
+      &
+      &\mid& \gvFork{E}
+             \sep \gvSend{E}{M}
+             \sep \gvSend{V}{E}
+             \sep \gvRecv{E}
+             \sep \gvClose{E}
+             \sep \gvCancel{E}
+      \\
+      &
+      &\mid& \gvTry{E}{x}{M}{N}
+      \\
+      \text{Pure contexts}
+      &\tm{P}
+      &::= & \gvHole
+             \sep \gvApp{P}{M}
+             \sep \gvApp{V}{P}
+             \sep \gvLetUnit{P}{M}
+             \sep \gvPair{P}{M}
+             \sep \gvPair{V}{P}
+             \sep \gvLetPair{x}{y}{P}{M}
+      \\
+      &
+      &\mid& \gvInl{P}
+             \sep \gvInr{P}
+             \sep \gvCaseSum{P}{x}{M}{y}{N}
+      \\
+      &
+      &\mid& \gvFork{P}
+             \sep \gvSend{P}{M}
+             \sep \gvSend{V}{P}
+             \sep \gvRecv{P}
+             \sep \gvClose{P}
+             \sep \gvCancel{P}
+      \\
+      \text{Thread contexts}
+      &\tm{\gvConf{F}}
+      &::= & \tm{\phi}\tm{E}
+      \\
+      \text{Configuration contexts}
+      &\tm{\gvConf{G}}
+      &::= & \gvHole
+             \sep \gvRes{a}{\gvConf{G}}
+             \sep \gvPPar{\gvConf{G}}{\gvConf{C}}
+    \end{array}
+    \)
+  \end{mdframed}
+  \caption{Exceptional GV, runtime syntax.}
+  \label{fig:egv-runtime}
+\end{figure*}

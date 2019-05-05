@@ -63,8 +63,8 @@
 \newcommand{\gvInr}[1]{\ensuremath{\st{\mathbf{inr}}\;\tm{#1}}}
 \newcommand{\gvCaseSum}[5]{\ensuremath{%
     \st{\mathbf{case}}\;\tm{#1}\;\st{\{}%
-    \gvInl{#2}\mathbin{\st{:}}\tm{#3}\st{;}\;%
-    \gvInr{#4}\mathbin{\st{:}}\tm{#5}\st{\}}}}
+    \gvInl{#2}\mathbin{\st{\mapsto}}\tm{#3}\st{;}\;%
+    \gvInr{#4}\mathbin{\st{\mapsto}}\tm{#5}\st{\}}}}
 \newcommand{\gvFork}[1]{\ensuremath{%
     \gvApp{\st{\mathbf{fork}}}{\tm{#1}}}}
 \newcommand{\gvSend}[2]{\ensuremath{%
@@ -104,10 +104,11 @@
 \newcommand{\gvConf}[1]{\ensuremath{\tm{\mathcal{#1}}}}
 
 \newcommand{\gvPlug}[2]{\ensuremath{\tm{#1}\st{[}\tm{#2}\st{]}}}
-\newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\st{\{}\tm{#2}\st{/}\tm{#3}\st{\}}}}
+\newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\st{\{}\tm{#3}\st{/}\tm{#2}\st{\}}}}
 \newcommand{\gvRedArr}[0]{\mathrel{\st{\longrightarrow}}}
 \newcommand{\gvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
 \newcommand{\gvRedPure}[2]{\ensuremath{\tm{#1}\gvRedArrPure\tm{#2}}}
+\newcommand{\gvArc}[2]{\ensuremath{\st{\text{rc}}\st{(}\tm{#1}\st{,}\;\tm{#2}\st{)}}}
 
 % RV syntax
 
@@ -127,7 +128,7 @@
 
 \newcommand{\rvVar}[1]{\texttt{\tm{#1}}}
 \newcommand{\rvAbs}[3][]{\texttt{%
-    \st{\textbf{move}}\;\st{|}\tm{#2}\st{:}\ty{#1}\st{|}\;\st{\{}\;\tm{#3}\;\st{\}}}}
+    \st{\textbf{move}}\;\st{{|}}\tm{#2}\st{:}\ty{#1}\st{{|}}\;\st{\{}\;\tm{#3}\;\st{\}}}}
 \newcommand{\rvApp}[2]{\texttt{\tm{#1}\st{(}\tm{#2}\st{)}}}
 \newcommand{\rvUnit}[0]{\texttt{\st{()}}}
 \newcommand{\rvLetUnit}[2]{\texttt{%
@@ -183,7 +184,7 @@
 \newcommand{\rvMemDisc}[0]{\texttt{\st{DISCONNECTED}}}
 
 \newcommand{\rvPlug}[2]{\texttt{\tm{#1}\st{[}\tm{#2}\st{]}}}
-\newcommand{\rvSub}[3]{\texttt{\tm{#1}\st{\{}\tm{#2}\st{/}\tm{#3}\st{\}}}}
+\newcommand{\rvSub}[3]{\texttt{\tm{#1}\st{\{}\tm{#3}\st{/}\tm{#2}\st{\}}}}
 \newcommand{\rvRedTup}[3][\rvConf{C}]{%
     \st{\langle}\tm{#2}\parallel\tm{#1}\if\relax\detokenize{#3}\else\st{,}\;\fi\tm{#3}\st{\rangle}}
 \newcommand{\rvRedArr}[0]{\mathrel{\st{\longrightarrow}}}

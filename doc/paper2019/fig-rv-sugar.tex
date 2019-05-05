@@ -1,0 +1,28 @@
+\begin{figure*}
+  \begin{mdframed}
+    {The \rvTyOpt{A} type}
+    \[
+      \begin{array}{lcl}
+        \rvTyOpt{A} &::=& \rvTySum{A}{\rvTyUnit}
+        \\
+        \rvSome{x} &::=& \rvInl{x}
+        \\
+        \rvNone &::=& \rvInr{\rvUnit}
+        \\
+        \rvCaseOpt{L}{x}{M}{N} &::=& \rvCaseSum{L}{x}{M}{y}{\rvLetUnit{y}{N}}
+      \end{array}
+    \]
+    {The \texttt{try!} macro}
+    \[
+      \begin{array}{lcl}
+        \rvTry{x}{M}{N} &::=& \rvTryDef{x}{M}{N}
+        \\
+        \rvTry{\rvUnit}{M}{N} &::=& \rvTryDef{x}{M}{\rvLetUnit{x}{N}}
+        \\
+        \rvTry{\rvPair{x}{y}}{M}{N} &::=& \rvTryDef{z}{M}{\rvLetPair{x}{y}{z}{N}}
+      \end{array}
+    \]
+  \end{mdframed}
+  \caption{Rusty Variation, syntactic sugar.}
+  \label{fig:rv-sugar}
+\end{figure*}

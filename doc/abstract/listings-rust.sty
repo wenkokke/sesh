@@ -20,12 +20,12 @@
 % [4] type and value constructors
 % [5] identifier
 %
-, morekeywords=[1]{pub, fn, type, enum, let, move, match, ident, ty, block, pat, expr, struct, trait, impl, macro_rules!} 
+, morekeywords=[1]{pub, fn, type, enum, let, move, where, match, ident, ty, block, pat, expr, struct, trait, impl, macro_rules!} 
 , morekeywords=[2]{Error, Session, FnOnce}
 , morekeywords=[3]{i32}
 , morekeywords=[4]{Result, Ok, Err, Option, Some, None, Send, Recv, End, Neg, Add, Box, Dual, Self, Either, Void}
-, morekeywords=[5]{assert!, assert_eq!, select!, offer!, fork!, select, offer,
-  fork, panic!, send, recv, cancel, spawn, drop, new, cancel, channel, select_left, select_right, offer_either}
+, morekeywords=[5]{assert!, assert_eq!, choose!, offer!, fork!, choose, offer,
+  fork, panic!, send, recv, close, cancel, spawn, drop, new, cancel, channel, choose_left, choose_right, offer_either}
 }
 
 \lstdefinestyle{colouredRust}%

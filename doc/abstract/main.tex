@@ -1,16 +1,22 @@
 \documentclass[sigconf,natbib=false]{acmart}
+\settopmatter{printacmref=false} % Removes citation information below abstract
+\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in first column
+\pagestyle{plain} % removes running headers
 \input{preamble}
 
 \begin{document}
 \title{Rusty Variation}
 \subtitle{Deadlock-free Sessions with Failure in Rust}
-\author{Wen Kokke}
-\authornote{%
-  Graduate student (9727050), supervised by Philip Wadler and Ian Stark.}
+\author{%
+% Wen Kokke
+}
 \affiliation{%
-  LFCS, University of Edinburgh, 10 Crichton St,
-  EH8 9AB, Edinburgh, United Kingdom}
-\email{wen.kokke@ed.ac.uk}
+%  LFCS, University of Edinburgh, 10 Crichton St,
+%  EH8 9AB, Edinburgh, United Kingdom
+}
+\email{%
+% wen.kokke@ed.ac.uk
+}
 
 \begin{abstract}
   Rusty Variation (RV) is a library for session-typed communication in Rust which offers strong compile-time correctness guarantees. Programs written using RV are guaranteed to respect a specified protocol, and are guaranteed to be free from deadlocks and races.
@@ -18,47 +24,45 @@
 
 \maketitle
 
-\section{Problem \& Motivation}
+\section{Problem \& Motivation}\label{sec:motivation}
 In concurrent programming, processes commonly exchange information by sending messages on shared channels. However, this communication often does not follow a specified protocol, and if it does, it the correctness of the implementation with respect to that protocol is rarely checked.
 
 Session types are a substructural typing discipline, introduced by \textcite{honda1993}, which describe communication protocols as \emph{channel types}, capturing both the type and the order of messages. Session type systems, then, ensure that programs correctly implement specified protocols.
 
-Rust is an immensely popular systems programming language.\footnote{https://insights.stackoverflow.com/survey/2018/} It aims to combine efficiency with abstraction and thread and memory safety. However, out of the box, it does not offer a way to specify protocols and verify communication.
+Rust is an immensely popular systems programming language.\footnote{\url{https://insights.stackoverflow.com/survey/2019/\#technology-\_-most-loved-dreaded-and-wanted-languages}} It aims to combine efficiency with abstraction and thread and memory safety. However, out of the box, it does not offer a way to specify protocols and verify communication.
 
-In this paper, we present Rusty Variation\footnote{\url{https://github.com/wenkokke/rusty-variation}}, a library for session-typed communication in Rust which allows users to specify and check the adherence to communication protocols, in addition to offering strong correctness guarantees, such as freedom from deadlocks and races.
+In this paper, we present Rusty Variation\footnote{\url{https://github.com/reviewer2/rusty-variation/}}, a library for session-typed communication in Rust which allows users to specify and check the adherence to communication protocols, in addition to offering strong correctness guarantees, such as freedom from deadlocks and races.
 We assume some familiarity with Rust. For an introduction to Rust, we refer the reader to \textit{The Rust Programming Language}.\footnote{\url{https://doc.rust-lang.org/nightly/book/}}
 
-\section{Background \& Related Work}
+\section{Background \& Related Work}\label{sec:background}
 \Textcite{jespersen2015} implement session types in Rust, based on the session-typed functional language LAST by \textcite{gay2009}. Their implementation guarantees that programs correctly implement specified communication protocols with some caveats. LAST depends upon linear types, meaning that sessions have to be used exactly once. Rust only offers affine types, meaning that  values---and, particularly relevant here, sessions---can be dropped. The implementation of LAST in Rust, therefore, guarantees session fidelity under the assumption that channels are \emph{never dropped}. In some cases, the compiler can be made to issue a warning at compile-time when a channel is dropped, for instance through the \lstinline{#[must_use]} annotation. However, in general, this is not something the compiler can guarantee. Furthermore, LAST ignores the possibility of communication failures, such as network errors, which cannot be detected at compile-time, yet can cause a channel to be dropped.
 
-We embrace the affine, and base our work on Exceptional GV by \textcite[EGV]{fowler2018}. Exceptional GV is a descendant of Good Variation~\parencite[GV]{wadler2012}, which itself is a descendant of LAST. Crucially, EGV has an affine type system, and allows for the explicit cancellation of sessions. Furthermore, EGV offers a stronger metatheory than LAST. In addition to session fidelity, EGV also guarantees global progress, freedom from deadlocks and livelocks, confluence, and termination. That is to say, there are no locks or race conditions, and all programs eventually halt. For a discussion of EGV and its metatheory, we refer the reader to the work by \textcite{fowler2018}.
+We embrace the affine, and base our work on Exceptional GV by \textcite[EGV]{fowler2019}. Exceptional GV is a descendant of Good Variation~\parencite[GV]{wadler2012}, which itself is a descendant of LAST. Crucially, EGV has an affine type system, and allows for the explicit cancellation of sessions. Furthermore, EGV offers a stronger metatheory than LAST. In addition to session fidelity, EGV also guarantees global progress, freedom from deadlocks and livelocks, confluence, and termination. That is to say, there are no locks or race conditions, and all programs eventually halt. For a discussion of EGV and its metatheory, we refer the reader to the work by \textcite{fowler2019}.
 
-\section{Contribution: Rusty Variation}
-Our contribution, Rusty Variation, is an implementation of EGV in Rust. We claim that it is a faithful implementation, which preserves much of EGVs metatheory. However, we depart from it in two ways:
+\section{Contribution: Rusty Variation}\label{sec:contribution}
+Our contribution, Rusty Variation, is an implementation of EGV in Rust. We claim that it is a faithful implementation, which preserves much of EGV's metatheory---we go further into this in \cref{sec:verification}. However, we depart from it in two ways:
 
-First, EGV relies upon exceptions and handlers. Rust, however, has rejected exceptions in favour of monadic errors i.e., wrapping possibly failing results in error types such as \lstinline{Option<T>} and \lstinline{Result<T,E>}.
+First, EGV relies upon exceptions and handlers. Rust, however, has rejected exceptions in favour of monadic errors, \ie, wrapping possibly failing results in error types such as \lstinline{Option<T>} and \lstinline{Result<T,E>}.
 
 Second, the core language of EGV does not include general recursion. Rust does. In the presence of non-termination, we cannot guarantee session fidelity, livelock freedom, or---well---termination. The work by \textcite{jespersen2015} also suffers from this shortcoming. We can demonstrate this by writing the program which loops forever, and then sends a message. The Rust type checker does not see a problem with this, but obviously the message will never be sent. However, we claim that if the program terminates, it respected the communication protocol.
 
 \subsection{Sessions and duality}
 Any type built using the primitive types below is a valid session:
 \begin{lstlisting}
-pub struct End;
-pub struct Send<T, S: Session>{ ... }
-pub struct Recv<T, S: Session>{ ... }
+pub struct End { ... }
+pub struct Send<T, S: Session> { ... }
+pub struct Recv<T, S: Session> { ... }
 \end{lstlisting}
-Session \emph{types} are public, but their members are not. Therefore, user cannot construct their own misbehaving sessions. The continuation of a session must itself be a session. This is enforced by the \lstinline{Session} constraint. In addition to this ``kinding'' of session types, the \lstinline{Session} trait also implements duality and session generation:
+Session \emph{types} are public, but their members are not. Therefore, users cannot construct their own misbehaving sessions. The continuation of a session must itself be a session. This is enforced by the \lstinline{Session} constraint. In addition to this ``kinding'' of session types, the \lstinline{Session} trait also implements duality and session generation:
 \begin{lstlisting}
 pub trait Session {
   type Dual: Session<Dual=Self>;
   fn new() -> (Self, Self::Dual);
 }
 \end{lstlisting}
-Duality works as expected: \lstinline{Send<T, S>} is dual to \lstinline{Recv<T, S::Dual>}---and vice versa---and \lstinline{End} is self-dual.
-The constraint \lstinline{Session<Dual=Self>} enforces that the dual of a
-session is a session, and that \lstinline{S::Dual::Dual} is equal to \lstinline{S} (involutivity).
+Duality works as expected: \lstinline{Send<T, S>} is dual to \lstinline{Recv<T, S::Dual>}---and vice versa---and \lstinline{End} is self-dual. The constraint \lstinline{Session<Dual=Self>} enforces that the dual of a session type is a session type , and that \lstinline{S::Dual::Dual} is equal to \lstinline{S} (involutivity).
 
-The \lstinline{new} function generates a new session and returns two \emph{dual} channel endpoints. Unlike the rest of the functions discussed in this section, \lstinline{new} is \emph{not} part of the public interface---see \cref{sec:limitations}.
+The \lstinline{new} function generates a new session-typed channel and returns two \emph{dual} channel endpoints. Unlike the rest of the functions discussed in this section, \lstinline{new} is \emph{not} part of the public interface---see \cref{sec:limitations}.
 
 Using these types, we can define the types of servers which offer negation and addition as follows, where \lstinline{i32} is the type of 32-bit integers:
 \begin{lstlisting}
@@ -67,96 +71,143 @@ type AddSrv = Recv<i32, Recv<i32, Send<i32, End>>>;
 \end{lstlisting}
 The client types are obtained by duality.
 
-\subsection{Send, receive, and fork!}
-The \lstinline{send} and \lstinline{recv} functions send and receive values in sessions. They have the following types:
+\subsection{Send, receive, close, and fork}\label{sec:basics}
+The \lstinline{send} and \lstinline{recv} functions send and receive values in sessions. Sending is non-blocking, and never fails. Sending a value on a cancelled channel is equivalent to cancelling that value---see \cref{sec:cancellation}. Receiving is blocking, and fails if the channel is cancelled. They have the following types:
 \begin{lstlisting}
-pub fn send<T, S: Session>(x: T, s: Send<T, S>)
-       -> Result<S, Box<Error>>;
-pub fn recv<T, S: Session>(s: Recv<T, S)
-       -> Result<(T, S), Box<Error>>;
+pub fn send<T, S: Session>(x: T, s: Send<T, S>) -> S
+pub fn recv<T, S: Session>(s: Recv<T, S) -> Option<(T, S)>
 \end{lstlisting}
-The \lstinline{fork!} macro creates a new session, and spawns a new thread. The new thread runs the first argument of \lstinline{fork!}---a code block---which receives one endpoint, and \lstinline{fork!} returns the dual endpoint. While \lstinline{fork!} is implemented as a macro, it can be considered as a function with the following type:
+The \lstinline{close} function closes a \emph{completed} session. Closing is \emph{synchronous}, meaning that \lstinline{close} blocks until the dual end point is also closed. Closing a cancelled channel fails. It has the following type:
 \begin{lstlisting}
-pub fn fork!<S: Session>(p: P) -> S::Dual
-      where
-        P: FnOnce(S) -> Result<(), Box<Error>>;
+pub fn close(s: End) -> Option<()>
 \end{lstlisting}
-Using these primitives, we can write the following program. This program forks off a process which sends a ``ping'' along the session, then waits to receive that ping and returns:
+The \lstinline{fork} function creates a new session, and spawns a new thread. The new thread runs the first argument of \lstinline{fork}---a code block---which receives one endpoint, and \lstinline{fork} returns the dual endpoint. It has the following type (where \lstinline{FnOnce(S) -> Option<()>} is the type of functions from \lstinline{S} to \lstinline{Option<()>} which can be invoked only once):
 \begin{lstlisting}
-let s = fork!(move |s: Send<(), End>| { send((), s) });
-let ((), End) = recv(s)?;
-Ok(())
+pub fn fork<S: Session>(p: P) -> S::Dual;
+where
+  P: FnOnce(S) -> Option<()>,
 \end{lstlisting}
-The \lstinline{let x = M?;} construct is Rust's ``monadic bind'' notation for programs which may return errors. If \lstinline{recv(s)} fails, the \lstinline{?}-operator short-circuits, skips the rest of the statements, and returns the error.
+The code block passed to \lstinline{fork} is allowed to fail. If it does, the child thread panics silently, and all open sessions are cancelled.
 
-\subsection{Cancellation}
-The \lstinline{cancel} function drops a value and cancels all sessions \emph{and} their duals referenced in that value. This cancellation propagates: any process attempting to write or write to a cancelled channel will return fail and cancel all \emph{their} open channels. This ensures that no process is left waiting for a message that will never come.
+Now that we have covered the basics, let us consider an example. The following program forks off a process which sends a ``ping'' along the channel, then waits to receive that ping and returns:
 \begin{lstlisting}
-pub fn cancel<T>(x: T) -> Result<(), Box<Error>>;
+let s = fork(move |s: Send<(), End>| {
+  let s = send((), s);
+  close(s)
+});
+let ((), s) = recv(s)?;
+close(s)
 \end{lstlisting}
-Using \lstinline{cancel}, we can implement the following program. This program forks off a process which it \emph{expects} to send a ``ping''. However, instead the forked process cancels the session. Therefore, the call to \lstinline{recv} fails, the \lstinline{?}-operator short-circuits, and the whole process returns an error:
+The \lstinline{let x = M?; N} construct is Rust's ``monadic bind'' notation for programs which may return errors. If \lstinline{recv(s)} succeeds, the \lstinline{?}-operator unpacks the \lstinline{Option}. If \lstinline{recv(s)} fails, the \lstinline{?}-operator short-circuits, skips the rest of the statements, and returns the error.
+
+\subsection{Cancellation}\label{sec:cancellation}
+The \lstinline{cancel} function drops a value and cancels all sessions \emph{and} their duals referenced in that value. This cancellation propagates: any process attempting to receive on or close a cancelled channel fails and cancels all their open sessions; any value sent on a cancelled channel is also cancelled. This ensures that no process is left waiting for a message that will never come.
 \begin{lstlisting}
-let s = fork!(move |s: Send<(), End>| { cancel(s) });
-let (z, End) = recv(s)?;
-Ok(())
+pub fn cancel<T>(x: T) -> ()
 \end{lstlisting}
-The cancellation mechanism is implemented through destructors. In fact, in the current implementation it is inherited from the implementation of channels in \lstinline{std::sync::mpsc}.
+Using \lstinline{cancel}, we can implement the following program. This program forks off a process which is \emph{expected} to send a ``ping''. However, instead the forked process cancels the session. Therefore, the call to \lstinline{recv} fails, the \lstinline{?}-operator short-circuits, and the whole program returns an error:
+\begin{lstlisting}
+let s = fork(move |s: Send<(), End>| {
+  cancel(s);
+  Some(())
+});
+let (z, s) = recv(s)?;
+close(s)
+\end{lstlisting}
+The cancellation mechanism is implemented through destructors. In the current implementation, cancellation is inherited from the implementation of channels in the \lstinline{crossbeam_channel} crate.
 
-The \lstinline{Send} and \lstinline{Recv} structures are annotated with \lstinline{#[must_use]}, to encourage the user to complete the protocol or cancel it explicitly. However, should a session be dropped, this is interpreted as \emph{implicit} cancellation. This ensures deadlock freedom, even in Rust's affine type system.
+The \lstinline{End}, \lstinline{Send}, and \lstinline{Recv} structures are annotated with \lstinline{#[must_use]}, to encourage the user to complete the protocol or cancel it explicitly. However, should a session be dropped, this is interpreted as \emph{implicit} cancellation. This ensures deadlock freedom, even in Rust's affine type system.
 
-\subsection{Branching with offer! and select!}
-The \lstinline{offer_either}, \lstinline{select_left}, and \lstinline{select_right} functions let processes offer or make a \emph{binary} choice. They implement this by receiving or sending a value of the sum type \lstinline{Either<S1, S2>}, where \lstinline{S1} and \lstinline{S2} are the possible continuations of the session. For instance, we could write the type of a ``calculator'' server, offering negation and addition, as \lstinline{Recv<Either<NegSrv, AddSrv>, End>}.
+\subsection{Branching with offer! and choose!}
+The \lstinline{choose_left}, \lstinline{choose_right}, and \lstinline{offer_either} functions let processes offer or make a \emph{binary} choice. These are \emph{derived} constructs, in that they are implemented using the primitive constructs~\parencite{honda1993,dardha2017}: they send or receive a value of the sum type, \lstinline{Either<S1, S2>}, where \lstinline{S1} and \lstinline{S2} are the possible continuations of the session.
+\begin{lstlisting}
+type Choose<S1, S2> = Send<Either<S1, S2>, End>;
+type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
 
-While these functions suffice to encode choice, we also define two macros, \lstinline{offer!} and \lstinline{select!}, which generalise this functionality to \emph{all enums}---as long as each value wraps a session. This allows processes to offer and select choices between many \emph{labelled} branches, and allows us to define the type for our calculator server as:
+pub fn choose_left<S1, S2>(s: Choose<S1, S2>) -> S1
+where
+  S1: Session, S2: Session,
+
+pub fn choose_right<S1, S2>(s: Choose<S1, S2>) -> S2
+where
+  S1: Session, S2: Session,
+
+pub fn offer_either<S1, S2, P1, P2, R>(
+       s: Offer<S1, S2>, p1: P1, p2: P2) -> Option<R>
+where
+  S1: Session, S2: Session,
+  P1: FnOnce(S1) -> Option<R>,
+  P2: FnOnce(S2) -> Option<R>,
+\end{lstlisting}
+While these functions suffice to encode choice, they are not useful in practice---a protocol with a four-way choice would require three nested \lstinline{Offer} constructs, and several calls to \lstinline{offer_either}. Code written in this style rapidly becomes unreadable. For this reason, we also define two macros, \lstinline{choose!} and \lstinline{offer!}, which generalise binary choice using \lstinline{Either} to a choice on \emph{any} \lstinline{enum} where each value wraps a session. This allows processes to offer and make choices between many \emph{labelled} branches, and allows us to define the type for a calculator server as:
 \begin{lstlisting}
 type CalcSrv = Recv<CalcOp, End>;
-enum CalcOp {Neg(NegSrv), Add(AddSrv)}
+enum CalcOp { Neg(NegSrv), Add(AddSrv) }
 \end{lstlisting}
-Using these macros, we can write the following program. This program forks off a calculator server, which offers the choice between negation and addition, selects addition, sends some numbers, and then returns the result:
+Using the \lstinline{choose!} and \lstinline{offer!} macros, we can write the following program. This program forks off a calculator server, which offers the choice between negation and addition, selects addition, sends some numbers, and then returns the result:
 \begin{lstlisting}
-let s = fork!(move |s: CalcSrv| {
+let s = fork(move |s: CalcSrv| {
   offer!(s, {
     CalcOp::Neg(s) => {
       let (x, s) = recv(s)?;
-      send(-x, s)
+      let s = send(-x, s);
+      close(s)
     },
     CalcOp::Add(s) => {
       let (x, s) = recv(s)?;
       let (y, s) = recv(s)?;
-      send(x + y, s)
+      let s = send(x + y, s);
+      close(s)
     },
   })});
-let s = select!(CalcOp::Add, s)?;
-let s = send(4, s)?;
-let s = send(5, s)?;
-let (z, End) = recv(s)?;
-Ok(z)
+let s = choose!(CalcOp::Add, s);
+let s = send(4, s);
+let s = send(5, s);
+let (z, s) = recv(s)?;
+close(s)?;
+Some(z)
 \end{lstlisting}
 
 \subsection{Implementation}
-We use the asynchronous channels from \lstinline{std::sync::mpsc}. These are ideal, as they already implement the correct cancellation behaviour. Channels are typed, and can only transfer values of a single type. Therefore, we use one-shot channels, and encode sessions following \textcite{dardha2017,scalas2016,padovani2017}: each \lstinline{send} creates a new channel for the continuation of the session, and sends that along with the value, and each \lstinline{recv} receives a value together with a channel on which to continue the session. Fortunately, the channels in \lstinline{std::sync::mpsc} are highly optimised for one-shot usage.\footnote{\url{https://doc.rust-lang.org/src/std/sync/mpsc/mod.rs.html\#147-149}}
+We use the asynchronous channels from \lstinline{crossbeam_channel}. These are ideal, as they already implement the correct cancellation behaviour. Channels are typed, and can only transfer values of a single type. Therefore, we use one-shot channels, and encode sessions following \textcite{tart2017,scalas2016,padovani2017}: each \lstinline{send} creates a new channel for the continuation of the session, and sends that along with the value, and each \lstinline{recv} receives a value together with a channel on which to continue the session. Fortunately, the channels in \lstinline{crossbeam_channel} are highly optimised for one-shot usage.
 
 \subsection{What If I Want to Be Evil?}\label{sec:limitations}
-There are three ways in which you can make code written using Rusty Variation deadlock. The first is by looping, which we discussed earlier. The other two are explicit, and surprisingly, \lstinline{unsafe} is not one of them:
+There are three ways in which you can make code written using Rusty Variation deadlock. The first is by looping, which we discussed earlier. The other two are explicit, and surprisingly, \lstinline{unsafe} is not one of them.
 
-The biggest issue lies in the fact that Rust's semantics do not guarantee that destructors are actually run. For instance, it is always possible to ``forget'' a value, using \lstinline{std::mem::forget}, without running its destructors. The following simple program deadlocks:
+The biggest issue lies in the fact that Rust's semantics do not guarantee that destructors are actually run. This is important for, \eg, doubly linked lists, and other data structures which require manually managed memory. For this reason, it is always possible to ``forget'' a value, using \lstinline{std::mem::forget}, without running its destructors. The following simple program deadlocks:
 \begin{lstlisting}
-let s = fork!(move |s: Send<(), End>| { mem::forget(s) });
-let ((), End) = recv(s)?;
-Ok(())
+let s = fork(move |s: Send<(), End>| {
+  std::mem::forget(s);
+  Some(())
+});
+let ((), s) = recv(s)?;
+close(s)
 \end{lstlisting}
-
-Second, it is not possible---at the moment---to export a trait without exporting all its members. Therefore, any user can use the \lstinline{new} function, and doing so, it is trivial to write a program which deadlocks: 
+Second, it is not possible---at the time of writing---to export a trait without exporting all its members. Therefore, any user can use the \lstinline{new} function, and doing so, it is trivial to write a program which deadlocks: 
 \begin{lstlisting}
 let (s1, r1) = Send<Void, End>::new();
-let r2 = fork!(move |s2: Send<Void, End>| {
-  let (v, End) = recv(r1)?;
-  send(v, s2)
+let (s2, r2) = Send<Void, End>::new();
+std::thread::spawn(move || {
+  let (v, r1) = recv(r1)?;
+  close(r1)?;
+  let s2 = send(v, s2);
+  close(s2)?;
+  Some(())
 });
-let (v, End) = recv(r2)?;
-send(v, s1)
+let (v, r2) = recv(r2)?;
+close(r2)?;
+let s1 = send(v, s1);
+close(s1)?;
 \end{lstlisting}
 
-\clearpage
+\subsection{Future Work: Testing \& Verification}\label{sec:verification}
+In \cref{sec:contribution}, we claim that RV preserves the metatheory of EGV, and while a full discussion of the testing and formal verification efforts we have undertaken to ensure the correctness of RV is out of the scope of this paper, it would be remiss of us not substantiate this claim.
+
+Firstly, RV is unit tested. We test various use-cases from EGV, from basic operations and their interactions with cancellation, to delegation and recursive session types. This test suite has caught several errors in the implementation. However, unit tests are error prone, and it is hard (if not impossible) to obtain a set of tests which cover all use-cases of a library. Unfortunately, tools such as RustBelt~\parencite{jung2017} and Rust Distilled~\parencite{weiss2018} are not yet mature enough to allow us to \emph{prove} the correctness of RV.
+
+In the absence of a mature formal semantics for Rust, we are designing a formal language, RV (or ``formal RV''), which matches, as close as possible, the semantics of our Rust library. It is a concurrent lambda calculus with heap-based shared-memory semantics. We plan to prove that formal RV guarantees preservation, progress, termination, confluence and the diamond property, and deadlock and livelock freedom. Furthermore, we plan to show that there exists a translation from EGV to formal RV, based on the monadic reflection of exceptions into the \lstinline{Option} monad~\parencite{filinski1994} and the translation of channel-based communication to shared memory, which is in operational correspondence with EGV. This would show that formal RV is a faithful implementation of EGV.
+
+Lastly, we plan to ensure the correspondence between formal RV and the implementation of RV, using property-based testing. We plan to generate a series of random formal RV terms, using Neat~\parencite{claessen2015}, and check if their behaviour, when run as Rust programs, corresponds to the behaviour of the term in formal RV.
+
 \printbibliography
 \end{document}

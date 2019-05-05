@@ -60,11 +60,11 @@ mod rusty_variation_bench {
 
     fn neg_client(s: CalcCli) -> Result<(), Box<Error>> {
         let n = thread_rng().gen();
-        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s)?;
+        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s);
         let s = send(n, s);
         let (n_, s) = recv(s)?;
         assert_eq!(-n, n_);
-        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s)?;
+        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s);
         close(s)?;
         Ok(())
     }

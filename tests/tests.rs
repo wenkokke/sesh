@@ -67,7 +67,7 @@ fn simple_calc_works() {
         {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
-            let s = choose_left::<_, AddClient<i32>>(s)?;
+            let s = choose_left::<_, AddClient<i32>>(s);
             let s = send(x, s);
             let (y, s) = recv(s)?;
             close(s)?;
@@ -79,7 +79,7 @@ fn simple_calc_works() {
             let s: SimpleCalcClient<i32> = fork(simple_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose_right::<NegClient<i32>, _>(s)?;
+            let s = choose_right::<NegClient<i32>, _>(s);
             let s = send(x, s);
             let s = send(y, s);
             let (z, s) = recv(s)?;
@@ -131,7 +131,7 @@ fn nice_calc_works() {
         {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
-            let s = choose!(CalcOp::Neg, s)?;
+            let s = choose!(CalcOp::Neg, s);
             let s = send(x, s);
             let (y, s) = recv(s)?;
             close(s)?;
@@ -143,7 +143,7 @@ fn nice_calc_works() {
             let s: NiceCalcClient<i32> = fork(nice_calc_server);
             let x: i32 = rng.gen();
             let y: i32 = rng.gen();
-            let s = choose!(CalcOp::Add, s)?;
+            let s = choose!(CalcOp::Add, s);
             let s = send(x, s);
             let s = send(y, s);
             let (z, s) = recv(s)?;
@@ -228,7 +228,7 @@ fn closure_works() {
 
         // Create a closure which uses the session.
         let f = move |x: i32| -> Result<i32, Box<Error>> {
-            let s = choose!(CalcOp::Neg, s)?;
+            let s = choose!(CalcOp::Neg, s);
             let s = send(x, s);
             let (y, s) = recv(s)?;
             close(s)?;
@@ -277,12 +277,12 @@ fn nice_sum_client_accum(s: NiceSumClient<i32>, mut xs: Vec<i32>)
                          -> Result<i32, Box<Error>> {
     match xs.pop() {
         Option::Some(x) => {
-            let s = choose!(SumOp::More, s)?;
+            let s = choose!(SumOp::More, s);
             let s = send(x, s);
             nice_sum_client_accum(s, xs)
         },
         Option::None => {
-            let s = choose!(SumOp::Done, s)?;
+            let s = choose!(SumOp::Done, s);
             let (sum, s) = recv(s)?;
             close(s)?;
             Ok(sum)

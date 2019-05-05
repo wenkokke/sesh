@@ -141,7 +141,6 @@ pub type Offer<S1, S2> =
 pub type Choose<S1, S2> =
     Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
-
 pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
                                          -> Result<R, Box<Error + 'a>>
 where
@@ -151,30 +150,30 @@ where
     G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
 {
     let (e, s) = recv(s)?;
-    close(s)?;
+    cancel(s);
     e.either(f, g)
 }
 
-pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S1, Box<Error>>
+pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> S1
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S1::new();
     let s = send(Either::Left(there), s);
-    close(s)?;
-    Ok(here)
+    cancel(s);
+    here
 }
 
-pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> Result<S2, Box<Error>>
+pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> S2
 where
     S1: Session + 'a,
     S2: Session + 'a,
 {
     let (here, there) = S2::new();
     let s = send(Either::Right(there), s);
-    close(s)?;
-    Ok(here)
+    cancel(s);
+    here
 }
 
 
@@ -185,7 +184,7 @@ macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
         (move || -> Result<_, _> {
             let (l, s) = recv($session)?;
-            close(s)?;
+            cancel(s);
             match l {
                 $(
                     $pat => $result,
@@ -197,16 +196,12 @@ macro_rules! offer {
 
 #[macro_export]
 macro_rules! choose {
-    ($label:path, $session:expr) => {
-        (move || -> Result<_, _> {
-            let (here, there) = <_ as Session>::new();
-            let s = send($label(there), $session);
-            match close(s) {
-                Ok(()) => Ok(here),
-                Err(e) => Err(e),
-            }
-        })()
-    };
+    ($label:path, $session:expr) => {{
+        let (here, there) = <_ as Session>::new();
+        let s = send($label(there), $session);
+        cancel(s);
+        here
+    }};
 }
 
 

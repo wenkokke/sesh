@@ -1,0 +1,57 @@
+\begin{figure*}
+  \begin{mdframed}
+    \centering
+    \(
+    \begin{array}{llrl}
+      \text{Types}
+      &\ty{A}, \ty{B}, \ty{C}
+      &::=& \gvTyUnit
+            \sep \gvTyFun{A}{B}
+            \sep \gvTySum{A}{B}
+            \sep \gvTyPair{A}{B}
+            \sep \ty{S}
+      \\
+      \text{Session types}
+      &\ty{S}, \ty{T}
+      &::=& \gvTySend{A}{S}
+            \sep \gvTyRecv{A}{S}
+            \sep \gvTyEnd
+      \\
+      \text{Variables}
+      &\tm{x}, \tm{y}, \tm{z}
+      \\
+      \text{Terms}
+      &\tm{L}, \tm{M}, \tm{N}
+      &::=& \gvVar{x}
+            \sep \gvAbs[A]{x}{M}
+            \sep \gvApp{M}{N}
+      \\
+      &
+      &\mid& \gvUnit
+             \sep \gvLetUnit{M}{N}
+      \\
+      &
+      &\mid& \gvPair{M}{N}
+             \sep \gvLetPair{x}{y}{M}{N}
+      \\
+      &
+      &\mid& \gvInl{M}
+             \sep \gvInr{M}
+             \sep \gvCaseSum{L}{x}{M}{y}{N}
+      \\
+      &
+      &\mid& \gvRaise
+             \sep \gvTry{L}{x}{M}{N}
+      \\
+      &
+      &\mid&\gvFork{M}
+             \sep \gvSend{M}{N}
+             \sep \gvRecv{M}
+             \sep \gvClose{M}
+             \sep \gvCancel{M}
+    \end{array}
+    \)
+  \end{mdframed}
+  \caption{Exceptional GV, terms and types.}
+  \label{fig:egv-syntax}
+\end{figure*}

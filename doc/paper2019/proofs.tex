@@ -1,0 +1,99 @@
+
+\begin{lemma}\label{lem:translate-term}
+  If $\tm{M}\gvRedArrPure\tm{M'}$,
+  then $\tm{\ftm{M}}\gvRedArrPure^{+}\tm{\ftm{M'}}$.
+\end{lemma}
+\begin{proof}
+  By induction on the reduction, inserting additional reductions for error handling.
+\end{proof}
+
+\begin{lemma}
+  If $\tm{\ftm{M}}\gvRedArrPure\tm{N}$,
+  then there exists a term $\tm{M'}$ such that
+  $\tm{M}\gvRedArrPure\tm{M'}$ and
+  $\tm{N}\gvRedArrPure^{\star}\tm{\ftm{M'}}$.
+\end{lemma}
+\begin{proof}
+  By induction on the reduction, inserting additional reductions for error handling.
+\end{proof}
+
+\begin{lemma}\label{lem:translate-raise}
+  $\ftm{\gvPlug{P}{\gvRaise}}\gvRedArrPure^{\star}\rvNone$
+\end{lemma}
+\begin{proof}
+  By induction on $\tm{P}$. Apply \textsc{E-None}.
+\end{proof}
+
+\begin{theorem}
+  If $\tm{\gvConf{C}}$ is well-typed and $\tm{\gvConf{C}}\gvRedArr\tm{\gvConf{C'}}$,
+  then \\ $\tm{\ftm{\gvConf{C}}}\gvRedArr^{+}\tm{\ftm{\gvConf{C'}}}$.
+\end{theorem}
+\begin{proof}
+  By case analysis on the reduction.
+  We handle applications of \textsc{E-LiftC} in each case as a prefix $\tm{\gvConf{G}}$.
+  \begin{itemize}
+  \item
+    Case \textsc{E-Cancel}.
+    We have $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvCancel{a}}}$. As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{a}$ does not occur in $\tm{\gvConf{G}}$ or $\tm{\gvConf{F}}$, and $\ren{\gvConf{C}}(\gvVar{a})$ occurs at most once in $\ftm{\gvConf{C}}$, \ie $\ftmArc{a}{\gvConf{C}}\le{1}$. \\
+    Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-Zap}.
+    We have $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}$. For each channel $\gvVar{c}$ in $\gvVar{U}$: As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{c}$ does not occur in $\gvConf{G}$, $\ren{\gvConf{C}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-Raise}.
+    We have \\
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvTry{\gvPlug{P}{\gvRaise}}{x}{M}{N}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-None}. \\
+    For each channel $\gvVar{c}$ in $\gvVar{P}$: As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{c}$ does not occur in $\gvConf{G}$, and $\ren{\gvConf{C}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+  \item
+    Case \textsc{E-RaiseChild}.
+    We have
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvChild{\gvPlug{P}{\gvRaise}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-HaltChild}.
+  \item
+    Case \textsc{E-RaiseMain}.
+    We have
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvMain{\gvPlug{P}{\gvRaise}}}$. \\
+    Apply \cref{lem:translate-raise} and \textsc{E-HaltMain}.
+  \item
+    Case \textsc{E-GC}.
+    We have \\
+    $\tm{\gvConf{C}} = \gvPlug{\gvConf{G}}{\gvPar{\gvRes{a}{\gvRes{b}{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}}}}}{\gvConf{C}}}$. \\
+    As $\tm{\gvConf{C}}$ is well-typed, $\gvVar{a}$ and $\gvVar{b}$ do not occur in $\gvConf{G}$, and $\ren{\gvConf{C}}(\gvVar{a})$ does not occur in $\ftm{\gvConf{G}}$, \ie $\ftmArc{a}{\gvConf{C}}=0$. \\
+    Apply \textsc{E-GC}.
+  \item
+    Case \textsc{E-LiftM}.
+    Apply \cref{lem:translate-term} and \textsc{E-LiftM}.
+  \end{itemize}
+  In the remaining cases, apply the rule of the same name.
+\end{proof}
+
+\begin{theorem}
+  If $\gvConf{C}$ is well-typed and $\tm{\ftm{\gvConf{C}}}\gvRedArr\tm{\gvConf{D}}$, then there exists a term $\tm{\gvConf{C'}}$ such that $\tm{\gvConf{C}}\equiv\gvRedArr^{+}\tm{\gvConf{C'}}$ and $\tm{\gvConf{D}}\gvRedArr^{\star}\tm{\ftm{\gvConf{C'}}}$.
+\end{theorem}
+\begin{proof}
+  By case analysis on the reduction.
+  \begin{itemize}
+  \item
+    Case \textsc{E-Zap}. There must be a channel $\gvVar{a}$ for which $\ftmArc{a}{\gvConf{C}}\le{1}$. There are two cases:
+    \begin{itemize}
+    \item 
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPlug{\gvConf{F}}{\gvCancel{a}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvPar{\gvPlug{\gvConf{F}}{\gvUnit}}{\gvZap{a}}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Cancel}. \\ For $\rvConf{D}\rvRedArr^{\star}\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVar{U}\gvVecAdd\gvVec{V}}{b}{\gvVec{W}}}}$. \\ Let $\gvConf{C'} = \gvPlug{\gvConf{G}}{\gvPar{\gvZap{a}}{\gvPar{\gvZap{U}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Zap}. \\ For $\rvConf{D}\rvRedArr^{\star}\ftm{\gvConf{C'}}$: For each channel $\gvVar{c}$ in $\gvVar{U}$: $\tm{\gvConf{C'}}$ is well-typed, by subject reduction, and hence $\gvVar{c}$ does not occur in $\gvConf{G}$, and $\ren{\gvConf{C'}}(\gvVar{c})$ occurs at most once in $\ftm{\gvConf{G}}$, \ie $\ftmArc{c}{\gvConf{C}}\le{1}$. Apply \textsc{E-Zap}.
+    \end{itemize}
+  \item
+    Case \textsc{E-GC}. We have $\ftmArc{a}{\gvConf{C}}=0$. Therefore, there must be two channels $\tm{a}$ and $\tm{b}$ which are cancelled, \ie $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvRes{a}{\gvRes{b}{\gvPar{\gvPPar{\gvZap{a}}{\gvPar{\gvZap{b}}{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}}{\gvConf{E}}}}}$. \\ Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\
+    For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-Zap} repeatedly. Apply \textsc{E-GC}. \\
+    For $\rvConf{D}\gvRedArr^{\star}\ftm{\gvConf{C'}}$: Apply reflexivity.
+  \item
+    Case \textsc{E-HaltChild}.
+    There are two cases:
+    \begin{itemize}
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvConf{E}}{\gvChild{\gvUnit}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-HaltChild}. \\ For $\rvConf{D}\rvRedArr\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \item
+      Case $\gvConf{C}\equiv\gvPlug{\gvConf{G}}{\gvPar{\gvConf{E}}{\gvChild{\gvRaise}}}$. Let $\gvConf{C'}=\gvPlug{\gvConf{G}}{\gvConf{E}}$. \\ For $\gvConf{C}\equiv\gvRedArr\gvConf{C'}$: Apply \textsc{E-RaiseChild}. \\ For $\rvConf{D}\rvRedArr\ftm{\gvConf{C'}}$: Apply reflexivity.
+    \end{itemize}
+  \end{itemize}
+\end{proof}
