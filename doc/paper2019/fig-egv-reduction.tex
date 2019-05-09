@@ -1,6 +1,6 @@
 \begin{figure*}
-    \begin{mdframed}
-    {Term reduction}
+  \begin{mdframed}
+    \header{Term reduction}{\gvRedPure{M}{M'}}
     \[\!\!%
       \setlength{\arraycolsep}{4pt}%
       \begin{array}{llcl}
@@ -41,7 +41,7 @@
           \quad\text{if}\;\gvRedPure{M}{M'}
       \end{array}
     \]
-    {Configuration equivalence}
+    \header{Configuration equivalence}{\gvConf{C}\equiv\gvConf{C'}}
     \[
       \gvPar{\gvConf{C}}{\gvPPar{\gvConf{D}}{\gvConf{E}}}
       \equiv
@@ -65,7 +65,7 @@
       \gvRes{a}{\gvPPar{\gvConf{C}}{\gvConf{D}}},
       \quad\text{if}\;\gvVar{a}\notin\text{fv}{(\gvConf{C})}
     \]
-    {Configuration reduction}
+    \header{Configuration reduction}{\gvRed{\gvConf{C}}{\gvConf{C'}}}
     \[\!\!%
       \setlength{\arraycolsep}{4pt}%
       \begin{array}{llcl}
@@ -166,3 +166,7 @@
   \caption{Exceptional GV, reduction semantics.}
   \label{fig:egv-reduction}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

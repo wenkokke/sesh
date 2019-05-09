@@ -3,6 +3,9 @@
     \centering
     \(
     \begin{array}{llrl}
+      \text{Variables}
+      &\tm{x}, \tm{y}, \tm{z}
+      \\
       \text{Types}
       &\ty{A}, \ty{B}, \ty{C}
       &::=& \gvTyUnit
@@ -17,8 +20,10 @@
             \sep \gvTyRecv{A}{S}
             \sep \gvTyEnd
       \\
-      \text{Variables}
-      &\tm{x}, \tm{y}, \tm{z}
+      \text{Environments}
+      &\ty{\Gamma}, \ty{\Delta}
+      &::= & \emptyenv
+             \sep \ty{\Gamma}, \gvVar{x} : \ty{S}
       \\
       \text{Terms}
       &\tm{L}, \tm{M}, \tm{N}
@@ -52,6 +57,10 @@
     \end{array}
     \)
   \end{mdframed}
-  \caption{Exceptional GV, terms and types.}
-  \label{fig:egv-syntax}
+  \caption{Exceptional GV, static syntax.}
+  \label{fig:egv-static-syntax}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

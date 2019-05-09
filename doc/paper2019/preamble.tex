@@ -23,8 +23,18 @@
 \newcommand{\ty}[1]{\textcolor{tycolor}{#1}}
 \newcommand{\tmty}[2]{\tm{#1}:\ty{#2}}
 \newcommand{\seq}[3]{#1\vdash\tmty{#2}{#3}}
-\newcommand{\cseq}[2]{#1\vdash\ty{#2}}
+\newcommand{\cseq}[4]{#1\st{;}\;#2\;{\vdash}^{#3}\;\tm{#4}}
+\newcommand{\rvseq}[3]{\seq{\texttt{\ensuremath{#1}}}{\rvTm{#2}}{\rvTy{#3}}}
+\newcommand{\rvcseq}[3]{#1\;\st{\vdash}^{#2}\;\rvTm{#3}}
+\newcommand{\rvhseq}[3]{#1\st{;}\;#2\;\st{\vdash}\;\tm{#3}}
 \newcommand{\sep}[0]{\;\mid\;}
+
+\newcommand{\header}[2]{%
+\parbox{0.5\textwidth}{#1}%
+\parbox{0.5\textwidth}{\raggedleft\boxed{#2}}}
+
+\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}^{L}_{A}}\tm{#1}}}
+\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}^{L}_{A}}\tm{#1}}}
 
 \newcommand{\ftm}[2][]{\ensuremath{%
     \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
@@ -44,6 +54,7 @@
 \newcommand{\gvTyEnd}[0]{\st{\mathbf{end}}}
 \newcommand{\gvDual}[1]{%
     \colorlet{tmp}{.}\color{stcolor}\overline{\color{tmp}\ty{#1}\color{tmp}}}
+\newcommand{\gvTyLock}[1]{\ty{#1}^{\st{\#}}}
 
 \newcommand{\emptyenv}[0]{\cdot}
 
@@ -91,12 +102,15 @@
 \newcommand{\gvPPar}[2]{\ensuremath{\st{(}\gvPar{#1}{#2}\st{)}}}
 \newcommand{\gvHalt}[0]{\ensuremath{\st{\mathbf{halt}}}}
 \newcommand{\gvZap}[1]{\ensuremath{\st{\lightning}\tm{#1}}}
-\newcommand{\gvBuf}[4]{\ensuremath{\tm{#1}\st{(}\tm{#2}\st{)}{\leftrightsquigarrow}\tm{#3}\st{(}\tm{#4}\st{)}}}
+\newcommand{\gvBuf}[4]{\ensuremath{\tm{#1}\st{(}\tm{#2}\st{)}\st{\leftrightsquigarrow}\tm{#3}\st{(}\tm{#4}\st{)}}}
 \newcommand{\gvHole}[0]{\ensuremath{[]}}
-\newcommand{\gvVecAdd}[0]{\ensuremath{\,{\cdot}\,}}
-\newcommand{\gvVecEmp}[0]{\ensuremath{\epsilon}}
+\newcommand{\gvVecAdd}[0]{\ensuremath{\,\st{\cdot}\,}}
+\newcommand{\gvVecEmp}[0]{\ensuremath{\st{\epsilon}}}
 \newcommand{\gvVec}[1]{%
     \colorlet{tmp}{.}\color{stcolor}\vec{\color{tmp}\tm{#1}\color{tmp}}}
+\newcommand{\gvTyVec}[1]{%
+    \colorlet{tmp}{.}\color{stcolor}\vec{\color{tmp}\ty{#1}\color{tmp}}}
+\newcommand{\gvSlice}[2]{\ty{#1}\st{/}\ty{#2}}
 
 \newcommand{\ren}[1]{\ensuremath{\st{\rho}_{\scriptstyle#1}}}
 \newcommand{\zap}[1]{\ensuremath{\st{\zeta}_{\scriptstyle#1}}}
@@ -106,27 +120,26 @@
 \newcommand{\gvPlug}[2]{\ensuremath{\tm{#1}\st{[}\tm{#2}\st{]}}}
 \newcommand{\gvSub}[3]{\ensuremath{\tm{#1}\st{\{}\tm{#3}\st{/}\tm{#2}\st{\}}}}
 \newcommand{\gvRedArr}[0]{\mathrel{\st{\longrightarrow}}}
+\newcommand{\gvRed}[2]{\ensuremath{\tm{#1}\gvRedArr\tm{#2}}}
 \newcommand{\gvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
 \newcommand{\gvRedPure}[2]{\ensuremath{\tm{#1}\gvRedArrPure\tm{#2}}}
 \newcommand{\gvArc}[2]{\ensuremath{\st{\text{rc}}\st{(}\tm{#1}\st{,}\;\tm{#2}\st{)}}}
 
 % RV syntax
 
+\newcommand{\rvTy}[1]{\texttt{\ty{#1}}}
 \newcommand{\rvTyUnit}[0]{\texttt{\st{()}}}
-\newcommand{\rvTyFun}[2]{\texttt{%
-    \ty{FnOnce}\st{(}\ty{#1}\st{)}\;\st{$\rightarrow$}\;\ty{#2}}}
-\newcommand{\rvTySum}[2]{\texttt{%
-    \ty{Either}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
+\newcommand{\rvTyFun}[2]{\texttt{\ty{FnOnce}\st{(}\ty{#1}\st{)}\;\st{$\rightarrow$}\;\ty{#2}}}
+\newcommand{\rvTySum}[2]{\texttt{\ty{Either}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
 \newcommand{\rvTyPair}[2]{\texttt{\st{(}\ty{#1}\st{,}\;\ty{#2}\st{)}}}
-\newcommand{\rvTyOpt}[1]{\texttt{%
-    \ty{Option}\st{<}\ty{#1}\st{>}}}
+\newcommand{\rvTyOpt}[1]{\texttt{\ty{Option}\st{<}\ty{#1}\st{>}}}
 
 \newcommand{\rvTySend}[2]{\texttt{\ty{Send}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
 \newcommand{\rvTyRecv}[2]{\texttt{\ty{Recv}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
 \newcommand{\rvTyEnd}[0]{\texttt{\ty{End}}}
 \newcommand{\rvDual}[1]{\texttt{\ty{#1}\st{:\!:}\ty{Dual}}}
 
-\newcommand{\rvVar}[1]{\texttt{\tm{#1}}}
+\newcommand{\rvTm}[1]{\texttt{\tm{#1}}}
 \newcommand{\rvAbs}[3][]{\texttt{%
     \st{\textbf{move}}\;\st{{|}}\tm{#2}\st{:}\ty{#1}\st{{|}}\;\st{\{}\;\tm{#3}\;\st{\}}}}
 \newcommand{\rvApp}[2]{\texttt{\tm{#1}\st{(}\tm{#2}\st{)}}}
@@ -170,10 +183,10 @@
 
 \newcommand{\rvHeap}[1]{\ensuremath{\mathcal{#1}}}
 \newcommand{\rvHeapEmp}[0]{\ensuremath{\varnothing}}
-\newcommand{\rvHeapData}[3]{%
-    \tm{#1}\st{,}\;\tm{#2}\;\st{\mapsto}\;\tm{#3}}
-\newcommand{\rvHeapDisc}[2]{%
-    \tm{#1}\st{,}\;\tm{#2}\;\st{\mapsto}\;\rvMemDisc}
+\newcommand{\rvHeapData}[4]{%
+    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\tm{#4}}
+\newcommand{\rvHeapDisc}[3]{%
+    \tm{#1}\st{,}\;\st{\{}\tm{#2}\st{,}\,\tm{#3}\st{\}}\;\st{\mapsto}\;\rvMemDisc}
 
 \newcommand{\rvArc}[3]{\rvApp{\st{arc}}{\tm{#1}\st{,}\;\st{$\langle$}\tm{#2}\st{,}\;\tm{#3}\st{$\rangle$}}}
 \newcommand{\ftmArc}[2]{\rvApp{\st{arc}}{$\ren{#2}\st{(}\tm{#1}\st{)}$\st{,}\;\ftm{#2}}}

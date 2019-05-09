@@ -1,0 +1,110 @@
+\begin{figure*}
+  \begin{mdframed}
+
+    \header{Term typing}{\rvseq{\ty{\Gamma}}{\rvTm{M}}{A}}
+    \begin{center}
+      \begin{prooftree*}
+        \AXC{$\tmty{x}{A}\in\ty{\Gamma}$}
+        \RightLabel{\textsc{T-Var}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvTm{x}}{A}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}\st{,}\;\tmty{x}{A}}{M}{B}$}
+        \RightLabel{\textsc{T-Abs}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvAbs[A]{x}{M}}{\rvTyFun{A}{B}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyFun{A}{B}}$}
+        \AXC{$\rvseq{\ty{\Delta}}{N}{A}$}
+        \RightLabel{\textsc{T-App}}
+        \BIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvApp{M}{N}}{B}$}
+      \end{prooftree*}
+      \setstretch{2.5}
+      
+      \begin{prooftree*}
+        \AXC{}
+        \RightLabel{\textsc{T-Unit}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvUnit}{\rvTyUnit}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyUnit}$}
+        \AXC{$\rvseq{\ty{\Delta}}{N}{A}$}
+        \RightLabel{\textsc{T-LetUnit}}
+        \BIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetUnit{M}{N}}{A}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{A}$}
+        \AXC{$\rvseq{\ty{\Delta}}{N}{B}$}
+        \RightLabel{\textsc{T-Pair}}
+        \BIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvPair{M}{N}}{\rvTyPair{A}{B}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyPair{A}{B}}$}
+        \AXC{$\rvseq{\ty{\Delta}\st{,}\;\tmty{x}{A}\st{,}\;\tmty{y}{B}}{N}{C}$}
+        \RightLabel{\textsc{T-LetPair}}
+        \BIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvLetPair{x}{y}{M}{N}}{C}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{A}$}
+        \RightLabel{\textsc{T-Left}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvInl{M}}{\rvTySum{A}{B}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{B}$}
+        \RightLabel{\textsc{T-Right}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvInr{M}}{\rvTySum{A}{B}}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{L}{\rvTySum{A}{B}}$}
+        \AXC{$\rvseq{\ty{\Delta}\st{,}\;\tmty{x}{A}}{M}{C}$}
+        \AXC{$\rvseq{\ty{\Delta}\st{,}\;\tmty{y}{B}}{N}{C}$}
+        \RightLabel{\textsc{T-CaseSum}}
+        \TIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvCaseSum{L}{x}{M}{y}{N}}{C}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyFun{S}{\rvTyOpt{\rvTyUnit}}}$}
+        \RightLabel{\textsc{T-Fork}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvFork{M}}{\rvDual{S}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyEnd}$}
+        \RightLabel{\textsc{T-Close}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvClose{M}}{\rvTyOpt{\rvTyUnit}}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{A}$}
+        \AXC{$\rvseq{\ty{\Delta}}{N}{\rvTySend{A}{S}}$}
+        \RightLabel{\textsc{T-Send}}
+        \BIC{$\rvseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\rvSend{M}{N}}{S}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\rvseq{\ty{\Gamma}}{M}{\rvTyRecv{A}{S}}$}
+        \RightLabel{\textsc{T-Recv}}
+        \UIC{$\rvseq{\ty{\Gamma}}{\rvRecv{M}}{\rvTyOpt{\rvPair{A}{S}}}$}
+      \end{prooftree*}
+    \end{center}
+    
+    \header{Duality}{\rvDual{S}}%
+    \vspace*{0.5\baselineskip}%
+    \begin{center}
+      \(
+      \rvDual{\rvTySend{A}{S}} = \rvTyRecv{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyRecv{A}{S}} = \rvTySend{A}{\rvDual{S}}
+      \quad
+      \rvDual{\rvTyEnd} = \rvTyEnd
+      \)
+    \end{center}
+  \end{mdframed}
+\caption{Rusty Variation, static typing.}
+\label{fig:rv-static-typing}
+\end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

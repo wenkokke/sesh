@@ -17,22 +17,33 @@
 \settopmatter{printccs=false, printacmref=false, printfolios=false}
 
 \input{preamble}
+\usepackage[nomarkers,figuresonly]{endfloat}
 
 \begin{document}
 \maketitle
 
+\section{Rusty Variation}
+
+\input{fig-rv-static-syntax}
+\input{fig-rv-syntactic-sugar}
+\input{fig-rv-static-typing}
+\input{fig-rv-runtime-syntax}
+\input{fig-rv-runtime-typing}
+\input{fig-rv-reduction}
+
 \section{Exceptional GV}
 
-\input{fig-egv-syntax}
-\input{fig-egv-typing}
-\input{fig-egv-runtime}
+\input{fig-egv-static-syntax}
+\input{fig-egv-static-typing}
+\input{fig-egv-runtime-syntax}
+\input{fig-egv-runtime-typing}
 \input{fig-egv-reduction}
 
-\subsection{Affine EGV}
-We make three changes to EGV to obtain affine EGV:
+\subsection{Linear and Affine EGV}
+We make three changes to linear EGV to obtain affine EGV:
 \begin{enumerate}
 \item 
-  Remove the $\gvCancel{x}$ construct.
+  Remove the $\gvCancel{x}$ construct and the corresponding typing and reduction rules.
 \item
   Change the typing rules to allow implicit weakening:
   \begin{prooftree}
@@ -67,5 +78,27 @@ We make three changes to EGV to obtain affine EGV:
     \)
   \end{center}
 \end{enumerate}
+We can translate programs in linear EGV to affine EGV by replacing all occurrences of $\gvCancel{x}$ with $\gvUnit$. We name this translation $\lta{}$.
+Similarly, we can translate programs in affine EGV to linear EGV by inserting $\gvCancel{\!\!}$ operations each time a name goes out of scope. We name this translation $\atl{}$.
+\begin{theorem}[Operational Correspondence for $\lta{}$]
+  We have:
+  \begin{itemize}
+  \item
+    If $\seq{\ty{\Gamma}}{M}{A}$ and $\gvRedPure{M}{M'}$, then $\gvRedPure{\lta{M}}{\lta{M'}}$.
+  \item
+    If $\seq{\ty{\Gamma}}{M}{A}$ and $\gvRedPure{\lta{M}}{N}$, there exists an $\tm{M'}$ such that $\gvRedPure{M}{M'}$ and $\tm{N}=\lta{M'}$.
+  \item
+    If $\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$ and $\gvRed{\gvConf{C}}{\gvConf{C'}}$, then $\gvRed{\lta{\gvConf{C}}}{\lta{\gvConf{C'}}}$.
+  \item
+    If $\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$ and $\gvRed{\lta{\gvConf{C}}}{\gvConf{D}}$, there exists a $\tm{\gvConf{C}}$ such that $\gvRed{\gvConf{C}}{\gvConf{C'}}$ and $\gvConf{D}=\lta{\gvConf{C'}}$.
+  \end{itemize}
+\end{theorem}
+\begin{proof}
+  By induction on the reduction. The only interesting case is \textsc{E-Cancel}, which can be replaced by the new rule \textsc{E-Drop}.
+\end{proof}
+
+\subsection{Exceptions and the Option Monad}
+
+\subsection{Channels and Shared State}
 
 \end{document}

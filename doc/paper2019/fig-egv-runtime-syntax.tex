@@ -6,6 +6,21 @@
       \text{Channels}
       &\tm{a}, \tm{b}, \tm{c}
       \\
+      \text{Runtime types}
+      &\ty{R}
+      &::= & \ty{S}
+             \sep \gvTyLock{S}
+      \\
+      \text{Environments}
+      &\ty{\Gamma}, \ty{\Delta}
+      &::= & \dots
+             \sep \ty{\Gamma}, \gvVar{a} : \ty{S}
+      \\
+      \text{Runtime environments}
+      &\ty{\Psi, \Phi}
+      &::= & \emptyenv
+             \sep \ty{\Psi}, \gvVar{a} : \ty{R}
+      \\
       \text{Terms}
       &\tm{L}, \tm{M}, \tm{N}
       &::= & \dots
@@ -95,5 +110,9 @@
     \)
   \end{mdframed}
   \caption{Exceptional GV, runtime syntax.}
-  \label{fig:egv-runtime}
+  \label{fig:egv-runtime-syntax}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

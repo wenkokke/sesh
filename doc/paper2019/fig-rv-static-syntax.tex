@@ -2,6 +2,9 @@
   \begin{mdframed}
     \[
     \begin{array}{llrl}
+      \text{Variables}
+      &\tm{x}, \tm{y}, \tm{z}
+      \\
       \text{Types}
       &\ty{A}, \ty{B}, \ty{C}
       &::=& \rvTyUnit
@@ -16,12 +19,9 @@
             \sep \rvTyRecv{A}{S}
             \sep \rvTyEnd
       \\
-      \text{Variables}
-      &\tm{x}, \tm{y}, \tm{z}
-      \\
       \text{Terms}
       &\tm{L}, \tm{M}, \tm{N}
-      &::=& \rvVar{x}
+      &::=& \rvTm{x}
             \sep \rvAbs[A]{x}{M}
             \sep \rvApp{M}{N}
       \\
@@ -45,6 +45,10 @@
     \end{array}
     \]
   \end{mdframed}
-  \caption{Rusty Variation, terms and types.}
-  \label{fig:rv-syntax}
+  \caption{Rusty Variation, static syntax.}
+  \label{fig:rv-static-syntax}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

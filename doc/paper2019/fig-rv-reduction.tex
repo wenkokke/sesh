@@ -1,6 +1,7 @@
 \begin{figure*}
   \begin{mdframed}
     \centering
+    \header{Term reduction}{\rvRedPure{M}{M'}}
     \[\!\!%
       \setlength{\arraycolsep}{4pt}%
       \begin{array}{llcl}
@@ -12,7 +13,7 @@
         \textsc{E-Unit}
         & {\rvLetUnit{\rvUnit}{M}}
         & \rvRedArrPure
-        & {\rvVar{M}}
+        & {\rvTm{M}}
         \\
         \textsc{E-Pair}
         & {\rvLetPair{x}{y}{\rvPair{V}{W}}{M}}
@@ -37,7 +38,7 @@
         \textsc{E-None}
         & {\rvCaseOpt{\rvNone}{x}{M}{N}}
         & \rvRedArrPure
-        & {\rvVar{N}}
+        & {\rvTm{N}}
         \\
         \textsc{E-Lift}
         & {\rvPlug{E}{M}}
@@ -46,105 +47,121 @@
           \quad\text{if}\;\rvRedPure{M}{M'}
       \end{array}
     \]
-    {
-      \setstretch{2.0}
-      \begin{prooftree}
-        \AXC{\tm{a} is fresh}
+
+    \header{Configuration reduction}{%
+      \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}\rvRedArr\rvRedTup[\rvConf{C'}]{\rvHeap{H'}}{}}
+    \begin{center}
+      \setstretch{2.5}
+      \begin{prooftree*}
+        \AXC{$\tm{a}, \tm{b}$ is fresh}
         \RightLabel{\textsc{E-Fork}}
         \UIC{$
           \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvFork{\rvAbs[S]{x}{M}}}}
           \rvRedArr
-          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{\rvMemEmp}}{\rvPlug{F}{a}\st{,}\;\rvChild{\rvSub{M}{x}{a}}}$}
-      \end{prooftree}
-      \begin{prooftree}
-        \AXC{\tm{b} is fresh}
+          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}{\rvPlug{F}{a}\st{,}\;\rvChild{\rvSub{M}{x}{b}}}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
+        \AXC{$\tm{c}, \tm{d}$ is fresh}
         \RightLabel{E-Send}
         \UIC{$
-          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{\rvMemEmp}}{\rvPlug{F}{\rvSend{U}{a}}}
+          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}{\rvPlug{F}{\rvSend{U}{a}}}
           \rvRedArr
-          \rvRedTup{\rvHeapData{\rvHeapData{\rvHeap{H}}{a}{\rvMemData{U}{b}}}{b}{\rvMemEmp}}{\rvPlug{F}{b}}$}
-      \end{prooftree}
-      \begin{prooftree}
+          \rvRedTup{\rvHeapData{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemData{U}{c}}}{c}{d}{\rvMemEmp}}{\rvPlug{F}{c}}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
         \AXC{}
         \RightLabel{\textsc{E-Recv}}
         \UIC{$
-          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{\rvMemData{U}{b}}}{\rvPlug{F}{\rvRecv{a}}}
+          \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemData{U}{c}}}{\rvPlug{F}{\rvRecv{a}}}
           \rvRedArr
-          \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvSome{\rvPair{U}{b}}}}$}
-      \end{prooftree}
-      \begin{prooftree}
+          \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvSome{\rvPair{U}{c}}}}$}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
         \AXC{}
         \RightLabel{\textsc{E-Close}}
         \UIC{$
           \rvRedTup
-          {\rvHeapData{\rvHeap{H}}{a}{\rvMemEmp}}
-          {\rvPlug{F}{\rvClose{a}}\st{,}\;\rvPlug{F'}{\rvClose{a}}}
+          {\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}
+          {\rvPlug{F}{\rvClose{a}}\st{,}\;\rvPlug{F'}{\rvClose{b}}}
           \rvRedArr
           \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvSome{\rvUnit}}\st{,}\;\rvPlug{F'}{\rvSome{\rvUnit}}}$}
-      \end{prooftree}
-      \begin{center}
-        \begin{prooftree*}
-          \AXC{$\rvArc{a}{\rvHeap{H}}{\rvConf{C}}\le{1}$}
-          \RightLabel{\textsc{E-Zap}}
-          \UIC{$
-            \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{\rvMem{M}}}{}
-            \rvRedArr
-            \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}}{}$}
-        \end{prooftree*}%
-        \begin{prooftree*}
-          \AXC{$\rvArc{a}{\rvHeap{H}}{\rvConf{C}}={0}$}
-          \RightLabel{\textsc{E-GC}}
-          \UIC{$
-            \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}}{}
-            \rvRedArr
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
-        \end{prooftree*}
-      \end{center}
-      \begin{prooftree}
+      \end{prooftree*}
+      
+      \begin{prooftree*}
+        \AXC{
+          $\tm{a}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$
+          or
+          $\tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
+        \RightLabel{\textsc{E-Zap}}
+        \UIC{$
+          \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMem{M}}}{}
+          \rvRedArr
+          \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}{b}}{}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
+        \AXC{
+          $\tm{a}, \tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
+        \RightLabel{\textsc{E-GC}}
+        \UIC{$
+          \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}{b}}{}
+          \rvRedArr
+          \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
         \AXC{}
         \RightLabel{\textsc{E-CloseZap}}
         \UIC{$
-          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}}{\rvPlug{F}{\rvClose{a}}}
+          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvClose{a}}}
           \rvRedArr
-          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}}{\rvPlug{F}{\rvNone}}$}
-      \end{prooftree}
-      \begin{prooftree}
+          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvNone}}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
         \AXC{}
         \RightLabel{\textsc{E-RecvZap}}
         \UIC{$
-          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}}{\rvPlug{F}{\rvRecv{a}}}
+          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvRecv{a}}}
           \rvRedArr
-          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}}{\rvPlug{F}{\rvNone}}$}
-      \end{prooftree}
-      \begin{center}
-        \begin{prooftree*}
-          \AXC{}
-          \RightLabel{\textsc{E-HaltChild}}
-          \UIC{$
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvChild{\rvVar{V}}}
-            \rvRedArr
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
-        \end{prooftree*}%
-        \begin{prooftree*}
-          \AXC{}
-          \RightLabel{\textsc{E-HaltMain}}
-          \UIC{$
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvMain{\rvNone}}
-            \rvRedArr
-            \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvPanic}$}
-        \end{prooftree*}
-      \end{center}
-      \begin{prooftree}
+          \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvNone}}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
+        \AXC{}
+        \RightLabel{\textsc{E-HaltChild}}
+        \UIC{$
+          \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvChild{\rvTm{V}}}
+          \rvRedArr
+          \rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
+      \end{prooftree*}%
+      \begin{prooftree*}
+        \AXC{}
+        \RightLabel{\textsc{E-HaltMain}}
+        \UIC{$
+          \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvMain{\rvNone}}
+          \rvRedArr
+          \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvPanic}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
         \AXC{$\rvRedPure{M}{M'}$}
         \RightLabel{\textsc{E-LiftM}}
         \UIC{$
           \rvRedTup{\rvHeap{H}}{\rvThread{\phi}{M}}
           \rvRedArr
           \rvRedTup{\rvHeap{H}}{\rvThread{\phi}{M'}}$}
-      \end{prooftree}
-    }
+      \end{prooftree*}
+    \end{center}
   \end{mdframed}
 
   \caption{Rusty Variation, reduction semantics.}
   \label{fig:rv-reduction}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

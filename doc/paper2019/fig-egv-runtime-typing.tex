@@ -1,0 +1,171 @@
+\begin{figure*}
+  \begin{mdframed}
+    \begin{minipage}[t]{0.25\textwidth}
+      \header{Term typing}{\seq{\ty{\Gamma}}{M}{A}}
+      \\
+      \begin{center}
+        \begin{prooftree*}
+          \AXC{$\vphantom{\Gamma}$}
+          \RightLabel{\textsc{T-Name}}
+          \UIC{$\seq{\tmty{a}{S}}{a}{S}$}
+        \end{prooftree*}
+      \end{center}
+    \end{minipage}%
+    \hspace*{0.05\textwidth}%
+    \begin{minipage}[t]{0.25\textwidth}
+      \header{Session slicing}{\gvSlice{S}{\gvTyVec{A}}}
+      \begin{gather*}
+        \gvSlice{S}{\gvVecEmp}
+        = \ty{S}
+        \\
+        \gvSlice{\gvTySend{A}{S}}{\ty{A}\gvVecAdd\gvVec{\ty{A}}}
+        = \gvSlice{S}{\gvTyVec{A}}
+      \end{gather*}
+    \end{minipage}%
+    \hspace*{0.05\textwidth}%
+    \begin{minipage}[t]{0.4\textwidth}
+      \header{Queue typing}{\seq{\ty{\Gamma}}{\gvVec{V}}{\gvTyVec{A}}}
+      \\
+      \begin{center}
+        \begin{prooftree*}
+          \AXC{$\vphantom{\Gamma}$}
+          \UIC{$\seq{\emptyenv}{\gvVecEmp}{\gvVecEmp}$}
+        \end{prooftree*}%
+        \begin{prooftree*}
+          \AXC{$\seq{\ty{\Gamma}}{V}{A}$}
+          \AXC{$\seq{\ty{\Delta}}{\gvVec{V}}{\gvTyVec{A}}$}
+          \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\tm{V}\gvVecAdd\gvVec{V}}{\ty{A}\gvVecAdd\gvTyVec{A}}$}
+        \end{prooftree*}
+      \end{center}
+    \end{minipage}%
+    \vspace{1\baselineskip}
+    \header{Configuration typing}{\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}}
+    \begin{center}
+      \begin{prooftree*}
+        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvTyLock{S}}}{\phi}{\gvConf{C}}$}
+        \RightLabel{\textsc{T-New}}
+        \UIC{$\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvRes{a}{\gvConf{C}}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$}
+        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\textsc{T-Par}}
+        \BIC{$\cseq%
+          {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
+          {\ty{\Phi}\st{,}\;\ty{\Psi}}%
+          {\phi+\psi}%
+          {\gvPar{\gvConf{C}}{\gvConf{D}}}$}
+      \end{prooftree*}
+      \setstretch{2.5}
+
+      \begin{prooftree*}
+        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{S}}{\phi}{\gvConf{C}}$}
+        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{\gvDual{S}}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\textsc{T-Syn}$_1$}
+        \BIC{$\cseq%
+          {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
+          {\ty{\Phi}\st{,}\;\ty{\Psi}\st{,}\;\tmty{a}{\gvTyLock{S}}}%
+          {\phi+\psi}%
+          {\gvPar{\gvConf{C}}{\gvConf{D}}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvDual{S}}}{\phi}{\gvConf{C}}$}
+        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{S}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\textsc{T-Syn}$_2$}
+        \BIC{$\cseq%
+          {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
+          {\ty{\Phi}\st{,}\;\ty{\Psi}\st{,}\;\tmty{a}{\gvTyLock{S}}}%
+          {\phi+\psi}%
+          {\gvPar{\gvConf{C}}{\gvConf{D}}}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
+        \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
+        \RightLabel{\textsc{T-Main}}
+        \UIC{$\cseq{\ty{\Gamma}}{\emptyenv}{\gvFlagMain}{\gvMain{M}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyUnit}$}
+        \RightLabel{\textsc{T-Child}}
+        \UIC{$\cseq{\ty{\Gamma}}{\emptyenv}{\gvFlagChild}{\gvChild{M}}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\vphantom{\Gamma}$}
+        \RightLabel{\textsc{T-Halt}}
+        \UIC{$\cseq{\emptyenv}{\emptyenv}{\gvFlagMain}{\gvHalt}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\vphantom{\Gamma}$}
+        \RightLabel{\textsc{T-Zap}}
+        \UIC{$\cseq{\tmty{a}{S}}{\emptyenv}{\gvFlagChild}{\gvZap{a}}$}
+      \end{prooftree*}
+
+      \begin{prooftree*}
+        \AXC{$\seq{\ty{\Gamma}\st{,}\;\tmty{a}{S}}{\gvVec{V}}{\gvTyVec{A}}$}
+        \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{a}{T}}{\gvVec{W}}{\gvTyVec{B}}$}
+        \AXC{$\gvSlice{S}{\gvTyVec{A}}=\gvDual{\gvSlice{T}{\gvTyVec{B}}}$}
+        \RightLabel{\textsc{T-Buf}}
+        \TIC{$\cseq%
+          {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
+          {\tmty{a}{S}\st{,}\;\tmty{b}{\gvDual{S}}}%
+          {\gvFlagChild}%
+          {\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}$}
+      \end{prooftree*}
+    \end{center}
+    \vspace*{1\baselineskip}
+
+    \begin{minipage}[t]{0.4\textwidth}
+      \header{Flag combination}{\phi+\psi}
+      \[
+        \begin{array}{ll}
+          \gvFlagMain  + \gvFlagChild = \gvFlagMain
+          &
+            \gvFlagChild + \gvFlagMain  = \gvFlagMain
+          \\
+          \gvFlagChild + \gvFlagChild = \gvFlagChild
+          &
+            \gvFlagMain  + \gvFlagMain \; \text{undefined}
+        \end{array}
+      \]
+      \header{Session type reduction}{\gvRed{\ty{S}}{\ty{T}}}
+      \[
+        \gvRed{\ty{\gvTySend{A}{S}}}{\ty{S}}
+        \qquad
+        \gvRed{\ty{\gvTyRecv{A}{S}}}{\ty{S}}
+      \]
+    \end{minipage}%
+    \hspace*{0.05\textwidth}%
+    \begin{minipage}[t]{0.55\textwidth}
+      \header{Environment reduction}{\gvRed{\ty{\Gamma}\st{;}\;\ty{\Phi}}{\ty{\Delta}\st{;}\;\ty{\Psi}}}
+      \begin{center}
+        \begin{prooftree*}
+          \AXC{$\gvRed{\ty{S}}{\ty{T}}$}
+          \UIC{$\gvRed
+            {\ty{\Gamma}\st{,}\;\tmty{a}{S}\st{;}\;\ty{\Phi}}
+            {\ty{\Gamma}\st{,}\;\tmty{a}{T}\st{;}\;\ty{\Phi}}$}
+        \end{prooftree*}
+
+        \setstretch{2.5}
+        \begin{prooftree*}
+          \AXC{$\gvRed{\ty{S}}{\ty{T}}$}
+          \UIC{$\gvRed
+            {\ty{\Gamma}\st{;}\;\ty{\Phi}\st{,}\;\tmty{a}{S}}
+            {\ty{\Gamma}\st{;}\;\ty{\Phi}\st{,}\;\tmty{a}{T}}$}
+        \end{prooftree*}
+        \begin{prooftree*}
+          \AXC{$\gvRed{\ty{S}}{\ty{T}}$}
+          \UIC{$\gvRed
+            {\ty{\Gamma}\st{;}\;\ty{\Phi}\st{,}\;\tmty{a}{\gvTyLock{S}}}
+            {\ty{\Gamma}\st{;}\;\ty{\Phi}\st{,}\;\tmty{a}{\gvTyLock{T}}}$}
+        \end{prooftree*}
+      \end{center}
+    \end{minipage}%
+
+  \end{mdframed}
+  \caption{Exceptional GV, runtime typing.}
+  \label{fig:egv-runtime-typing}
+\end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:
