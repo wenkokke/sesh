@@ -1,0 +1,98 @@
+\begin{figure*}
+  \begin{mdframed}\begin{highlight}
+    Definition of \textbf{do}-notation for \affineAGV:%
+    \[
+      \begin{array}{lcl}
+        \gvDo{x}{M}{N} &::=& \gvDoDef{x}{M}{N}
+        \\
+        \gvDo{\gvUnit}{M}{N} &::=& \gvDoDef{x}{M}{\gvLetUnit{x}{N}}
+        \\
+        \gvDo{\gvPair{x}{y}}{M}{N} &::=& \gvDoDef{z}{M}{\gvLetPair{x}{y}{z}{N}}
+      \end{array}
+    \] 
+    Definition of $\ftm{\cdot}$ on types and session types:%
+    \begin{center}
+      \begin{minipage}[t]{0.5\linewidth}
+        \[
+          \begin{array}{lcl}
+            \ftm{\gvTyUnit}         & = & \gvTyUnit
+            \\
+            \ftm{{\gvTyFun{A}{B}}}  & = & \gvTyFun{\ftm{A}}{\gvTyOpt{\ftm{B}}}
+            \\
+            \ftm{{\gvTySum{A}{B}}}  & = & \gvTySum{\ftm{A}}{\ftm{B}}
+            \\
+            \ftm{{\gvTyPair{A}{B}}} & = & \gvTyPair{\ftm{A}}{\ftm{B}}
+          \end{array}
+        \]
+      \end{minipage}%
+      \begin{minipage}[t]{0.5\linewidth}
+        \[
+          \begin{array}{lcl}
+            \ftm{{\gvTySend{A}{S}}} & = & \gvTySend{\ftm{A}}{\ftm{S}}
+            \\
+            \ftm{{\gvTyRecv{A}{S}}} & = & \gvTyRecv{\ftm{A}}{\ftm{S}}
+            \\
+            \ftm{\gvTyEnd}          & = & \gvTyEnd
+          \end{array}
+        \]
+      \end{minipage}
+    \end{center}
+    Definition of $\atm{}$ on terms:%
+    \[
+      \begin{array}{lcl}
+        \atm{\tm{x}}
+        & = & \gvSome{\tm{x}}
+        \\
+        \atm{\tm{a}}
+        & = & \gvSome{\tm{a}}
+        \\
+        \atm{\parens{\gvAbs[A]{x}{M}}}
+        & = & \gvSome{\parens{\gvAbs[\ftm{A}]{x}{\atm{M}}}}
+        \\
+        \atm{\parens{\gvApp{M}{N}}}
+        & = & \gvDo{f}{\atm{M}}{{\gvDo{x}{\atm{N}}{\gvApp{f}{x}}}}
+        \\
+        \atm{\gvUnit}
+        & = & \gvSome{\gvUnit}
+        \\
+        \atm{\parens{\gvLetUnit{M}{N}}}
+        & = & \gvDo{\gvUnit}{\atm{M}}{{\atm{N}}}
+        \\
+        \atm{\gvPair{M}{N}}
+        & = & \gvDo{x}{\atm{M}}{{\gvDo{y}{\atm{N}}{{\gvSome{\gvPair{x}{y}}}}}}
+        \\
+        \atm{\parens{\gvLetPair{x}{y}{M}{N}}}
+        & = & \gvDo{\gvPair{x}{y}}{\atm{M}}{\atm{N}}
+        \\
+        \atm{\parens{\gvInl{M}}}
+        & = & \gvDo{x}{\atm{M}}{\gvSome{\parens{\gvInl{x}}}}
+        \\
+        \atm{\parens{\gvInr{M}}}
+        & = & \gvDo{x}{\atm{M}}{\gvSome{\parens{\gvInr{x}}}}
+        \\
+        \atm{\parens{\gvCaseSum{L}{x}{M}{y}{N}}}
+        & = & \gvDo{z}{L}{{\gvCaseSum{z}{x}{\atm{M}}{y}{\atm{N}}}}
+        \\
+        \atm{\parens{\gvCancel{M}}}
+        & = & \gvDo{\gvUnit}{\atm{M}}{\gvSome{\gvUnit}}
+        \\
+        \atm{\parens{\gvFork{M}}}
+        & = & \gvSome{\parens{\gvFork{\atm{M}}}}
+        \\
+        \atm{\parens{\gvSend{M}{N}}}
+        & = & \gvDo{x}{\atm{M}}{{\gvDo{y}{\atm{N}}{\gvSome{\parens{\gvSend{x}{y}}}}}}
+        \\
+        \atm{\parens{\gvRecv{M}}}
+        & = & \gvDo{x}{\atm{M}}{{\gvRecv{x}}}
+        \\
+        \atm{\parens{\gvClose{M}}}
+        & = & \gvSome{\parens{\gvClose{M}}}
+        \\[1ex]
+        \multicolumn{3}{c}{%
+        \text{(where all variables introduced on the right-hand side are fresh)}}
+      \end{array}
+    \]
+  \end{highlight}\end{mdframed}
+  \caption[\affineEGV to \affineAGV]{Translation from \affineEGV to \affineAGV.}
+  \label{fig:affine-egv-to-agv}
+\end{figure*}

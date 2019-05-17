@@ -1,46 +1,46 @@
 \begin{figure*}
-  \begin{mdframed}
+  \begin{mdframed}\begin{highlight}
     \centering
     \header{Term reduction}{\rvRedPure{M}{M'}}
     \[\!\!%
       \setlength{\arraycolsep}{4pt}%
       \begin{array}{llcl}
-        \textsc{E-Lam}
+        \rlabel{\textsc{E-Lam}}{rule:rv-red-pure-lam}
         & {\rvApp{\rvAbs[A]{x}{M}}{V}}
         & \rvRedArrPure
         & {\rvSub{M}{x}{V}}
         \\
-        \textsc{E-Unit}
+        \rlabel{\textsc{E-Unit}}{rule:rv-red-pure-unit}
         & {\rvLetUnit{\rvUnit}{M}}
         & \rvRedArrPure
         & {\rvTm{M}}
         \\
-        \textsc{E-Pair}
+        \rlabel{\textsc{E-Pair}}{rule:rv-red-pure-pair}
         & {\rvLetPair{x}{y}{\rvPair{V}{W}}{M}}
         & \rvRedArrPure
         & {\rvSub{M}{\tm{x}\st{,}\;\tm{y}}{\tm{V}\st{,}\;\tm{W}}}
         \\
-        \textsc{E-Inl}
+        \rlabel{\textsc{E-Inl}}{rule:rv-red-pure-inl}
         & {\rvCaseSum{\rvInl{V}}{x}{M}{y}{N}}
         & \rvRedArrPure
         & {\rvSub{M}{x}{V}}
         \\
-        \textsc{E-Inr}
+        \rlabel{\textsc{E-Inr}}{rule:rv-red-pure-inr}
         & {\rvCaseSum{\rvInr{V}}{x}{M}{y}{N}}
         & \rvRedArrPure
         & {\rvSub{N}{y}{V}}
         \\
-        \textsc{E-Some}
+        \rlabel{\textsc{E-Some}}{rule:rv-red-pure-some}
         & {\rvCaseOpt{\rvSome{V}}{x}{M}{N}}
         & \rvRedArrPure
         & {\rvSub{M}{x}{V}}
         \\
-        \textsc{E-None}
+        \rlabel{\textsc{E-None}}{rule:rv-red-pure-none}
         & {\rvCaseOpt{\rvNone}{x}{M}{N}}
         & \rvRedArrPure
         & {\rvTm{N}}
         \\
-        \textsc{E-Lift}
+        \rlabel{\textsc{E-Lift}}{rule:rv-red-pure-lift}
         & {\rvPlug{E}{M}}
         & \rvRedArrPure
         & {\rvPlug{E}{M'}}\st{,}
@@ -54,7 +54,7 @@
       \setstretch{2.5}
       \begin{prooftree*}
         \AXC{$\tm{a}, \tm{b}$ is fresh}
-        \RightLabel{\textsc{E-Fork}}
+        \RightLabel{\rlabel{\textsc{E-Fork}}{rule:rv-red-fork}}
         \UIC{$
           \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvFork{\rvAbs[S]{x}{M}}}}
           \rvRedArr
@@ -63,7 +63,7 @@
 
       \begin{prooftree*}
         \AXC{$\tm{c}, \tm{d}$ is fresh}
-        \RightLabel{E-Send}
+        \RightLabel{\rlabel{E-Send}{rule:rv-red-send}}
         \UIC{$
           \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}{\rvPlug{F}{\rvSend{U}{a}}}
           \rvRedArr
@@ -72,7 +72,7 @@
       
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-Recv}}
+        \RightLabel{\rlabel{\textsc{E-Recv}}{rule:rv-red-recv}}
         \UIC{$
           \rvRedTup{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemData{U}{c}}}{\rvPlug{F}{\rvRecv{a}}}
           \rvRedArr
@@ -81,7 +81,7 @@
       
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-Close}}
+        \RightLabel{\rlabel{\textsc{E-Close}}{rule:rv-red-close}}
         \UIC{$
           \rvRedTup
           {\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}
@@ -95,7 +95,7 @@
           $\tm{a}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$
           or
           $\tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
-        \RightLabel{\textsc{E-Zap}}
+        \RightLabel{\rlabel{\textsc{E-Zap}}{rule:rv-red-zap}}
         \UIC{$
           \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMem{M}}}{}
           \rvRedArr
@@ -105,7 +105,7 @@
       \begin{prooftree*}
         \AXC{
           $\tm{a}, \tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
-        \RightLabel{\textsc{E-GC}}
+        \RightLabel{\rlabel{\textsc{E-GC}}{rule:rv-red-gc}}
         \UIC{$
           \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}{b}}{}
           \rvRedArr
@@ -114,7 +114,7 @@
 
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-CloseZap}}
+        \RightLabel{\rlabel{\textsc{E-CloseZap}}{rule:rv-red-closezap}}
         \UIC{$
           \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvClose{a}}}
           \rvRedArr
@@ -123,7 +123,7 @@
 
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-RecvZap}}
+        \RightLabel{\rlabel{\textsc{E-RecvZap}}{rule:rv-red-recvzap}}
         \UIC{$
           \rvRedTup{\rvHeapDisc{\rvHeap{H}}{a}{b}}{\rvPlug{F}{\rvRecv{a}}}
           \rvRedArr
@@ -132,7 +132,7 @@
 
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-HaltChild}}
+        \RightLabel{\rlabel{\textsc{E-HaltChild}}{rule:rv-red-haltchild}}
         \UIC{$
           \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvChild{\rvTm{V}}}
           \rvRedArr
@@ -140,7 +140,7 @@
       \end{prooftree*}%
       \begin{prooftree*}
         \AXC{}
-        \RightLabel{\textsc{E-HaltMain}}
+        \RightLabel{\rlabel{\textsc{E-HaltMain}}{rule:rv-red-haltmain}}
         \UIC{$
           \rvRedTup[\rvConf{C}]{\rvHeap{H}}{\rvMain{\rvNone}}
           \rvRedArr
@@ -149,15 +149,14 @@
 
       \begin{prooftree*}
         \AXC{$\rvRedPure{M}{M'}$}
-        \RightLabel{\textsc{E-LiftM}}
+        \RightLabel{\rlabel{\textsc{E-LiftM}}{rule:rv-red-liftm}}
         \UIC{$
           \rvRedTup{\rvHeap{H}}{\rvThread{\phi}{M}}
           \rvRedArr
           \rvRedTup{\rvHeap{H}}{\rvThread{\phi}{M'}}$}
       \end{prooftree*}
     \end{center}
-  \end{mdframed}
-
+  \end{highlight}\end{mdframed}
   \caption{Rusty Variation, reduction semantics.}
   \label{fig:rv-reduction}
 \end{figure*}

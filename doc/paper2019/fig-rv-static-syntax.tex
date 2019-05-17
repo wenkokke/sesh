@@ -1,5 +1,5 @@
 \begin{figure*}
-  \begin{mdframed}
+  \begin{mdframed}\begin{highlight}
     \[
     \begin{array}{llrl}
       \text{Variables}
@@ -21,7 +21,7 @@
       \\
       \text{Terms}
       &\tm{L}, \tm{M}, \tm{N}
-      &::=& \rvTm{x}
+      &::=& \tm{x}
             \sep \rvAbs[A]{x}{M}
             \sep \rvApp{M}{N}
       \\
@@ -44,7 +44,7 @@
              \sep \rvRecv{M}
     \end{array}
     \]
-  \end{mdframed}
+  \end{highlight}\end{mdframed}
   \caption{Rusty Variation, static syntax.}
   \label{fig:rv-static-syntax}
 \end{figure*}

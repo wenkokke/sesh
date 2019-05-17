@@ -22,15 +22,6 @@
 \begin{document}
 \maketitle
 
-\section{Rusty Variation}
-
-\input{fig-rv-static-syntax}
-\input{fig-rv-syntactic-sugar}
-\input{fig-rv-static-typing}
-\input{fig-rv-runtime-syntax}
-\input{fig-rv-runtime-typing}
-\input{fig-rv-reduction}
-
 \section{Exceptional GV}
 
 \input{fig-egv-static-syntax}
@@ -39,36 +30,34 @@
 \input{fig-egv-runtime-typing}
 \input{fig-egv-reduction}
 
+\section{Rusty Variation}
+
+\input{fig-rv-static-syntax}
+\input{fig-rv-syntactic-sugar}
+\input{fig-rv-static-typing}
+\input{fig-rv-runtime-syntax}
+\input{fig-rv-reduction}
+\input{fig-affine-egv-to-agv}
+
 \subsection{Linear and Affine EGV}
-We make three changes to linear EGV to obtain affine EGV:
+EGV is a linear language, in the sense that it does not allow the implicit discarding of names, \ie implicit weakening. However, it does support \emph{explicit} weakening, in the form of \ref{rule:egv-ty-cancel}. RV supports implicit weakening. Our first step in investigating EGV's relation to RV is construct \emph{affine} EGV, a variant of EGV which \emph{does} support implicit weakening.
+
+We make three changes to EGV (hence linear EGV or \linearEGV) to obtain affine EGV (\affineEGV):
 \begin{enumerate}
 \item 
   Remove the $\gvCancel{x}$ construct and the corresponding typing and reduction rules.
 \item
-  Change the typing rules to allow implicit weakening:
+  Add a typing rule to allow implicit weakening:
   \begin{prooftree}
-    \AXC{$\tmty{\gvVar{x}}{A}\in\ty{\Gamma}$}
-    \RightLabel{\textsc{T-Var}}
-    \UIC{$\seq{\ty{\Gamma}}{\gvVar{x}}{A}$}
+    \AXC{$\gvSeq{\ty{\Gamma}}{M}{A}$}
+    \RightLabel{\rlabel{\textsc{T-Weak}}{rule:egv-ty-weak}}
+    \UIC{$\gvSeq{\ty{\Gamma}\st{,}\;\tmty{x}{B}}{M}{A}$}
   \end{prooftree}
-  \vspace*{0.25\baselineskip}
-  \begin{center}
-    \begin{prooftree*}
-      \AXC{}
-      \RightLabel{\textsc{T-Unit}}
-      \UIC{$\seq{\ty{\Gamma}}{\gvUnit}{\gvTyUnit}$}
-    \end{prooftree*}%
-    \begin{prooftree*}
-      \AXC{}
-      \RightLabel{\textsc{T-Raise}}
-      \UIC{$\seq{\ty{\Gamma}}{\gvRaise}{A}$}
-    \end{prooftree*}
-  \end{center}
 \item
   Add a garbage collection reduction, where $\gvArc{\gvVar{a}}{\gvConf{C}}$ counts the number of occurrences of $\gvVar{a}$ in $\gvConf{C}$:
   \begin{center}
     \(
-    \textsc{E-Drop}
+    \rlabel{\textsc{E-Drop}}{rule:egv-red-drop}
     \quad
     {\gvRes{a}{\gvConf{C}}}
     \gvRedArr
@@ -78,27 +67,176 @@ We make three changes to linear EGV to obtain affine EGV:
     \)
   \end{center}
 \end{enumerate}
-We can translate programs in linear EGV to affine EGV by replacing all occurrences of $\gvCancel{x}$ with $\gvUnit$. We name this translation $\lta{}$.
-Similarly, we can translate programs in affine EGV to linear EGV by inserting $\gvCancel{\!\!}$ operations each time a name goes out of scope. We name this translation $\atl{}$.
-\begin{theorem}[Operational Correspondence for $\lta{}$]
-  We have:
-  \begin{itemize}
-  \item
-    If $\seq{\ty{\Gamma}}{M}{A}$ and $\gvRedPure{M}{M'}$, then $\gvRedPure{\lta{M}}{\lta{M'}}$.
-  \item
-    If $\seq{\ty{\Gamma}}{M}{A}$ and $\gvRedPure{\lta{M}}{N}$, there exists an $\tm{M'}$ such that $\gvRedPure{M}{M'}$ and $\tm{N}=\lta{M'}$.
-  \item
-    If $\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$ and $\gvRed{\gvConf{C}}{\gvConf{C'}}$, then $\gvRed{\lta{\gvConf{C}}}{\lta{\gvConf{C'}}}$.
-  \item
-    If $\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$ and $\gvRed{\lta{\gvConf{C}}}{\gvConf{D}}$, there exists a $\tm{\gvConf{C}}$ such that $\gvRed{\gvConf{C}}{\gvConf{C'}}$ and $\gvConf{D}=\lta{\gvConf{C'}}$.
-  \end{itemize}
-\end{theorem}
-\begin{proof}
-  By induction on the reduction. The only interesting case is \textsc{E-Cancel}, which can be replaced by the new rule \textsc{E-Drop}.
-\end{proof}
+We can translate programs in \linearEGV to \affineEGV by replacing all occurrences of $\gvCancel{x}$ with $\gvUnit$. We name this translation $\lta{}$. This translation preserves typing, witnessed by the fact that \ref{rule:egv-ty-cancel} is derivable in affine EGV:%
+\begin{prooftree}
+  \AXC{}
+  \RightLabel{\ref{rule:egv-ty-unit}}
+  \UIC{$\gvSeq{\emptyenv}{\gvUnit}{\gvTyUnit}$}
+  \RightLabel{$\ref{rule:egv-ty-weak}^\star$}
+  \UIC{$\gvSeq{\ty{\Gamma}}{\gvUnit}{\gvTyUnit}$}
+\end{prooftree}
+We have a \emph{strict} operational correspondence between \linearEGV and \affineEGV along $\lta{}$, \ie the following diagrams commute:
+\[
+  \begin{tikzcd}
+    \linearEGV
+    \rar{\gvRedArrPure}
+    \dar{\lta{}}
+    &
+    \linearEGV
+    \dar{\lta{}}
+    \\
+    \affineEGV
+    \rar{\gvRedArrPure}
+    &
+    \affineEGV
+  \end{tikzcd}
+  \quad
+  \begin{tikzcd}
+    \linearEGV
+    \rar{\gvRedArr}
+    \dar{\lta{}}
+    &
+    \linearEGV
+    \dar{\lta{}}
+    \\
+    \affineEGV
+    \rar{\gvRedArr}
+    &
+    \affineEGV
+  \end{tikzcd}
+\]
+On the left, \linearEGV and \affineEGV denote the respective terms. This diagram commutes as the term languages of the two systems are identical. On the right, \linearEGV and \affineEGV denote the respective configurations up to structural congruence. To show that this diagram commutes, we observe that each application of \ref{rule:egv-red-cancel} can be replaced with an application of \ref{rule:egv-red-drop} after the translation $\lta{}$ has been applied, and vice versa.
+
+In the other direction, we can translate programs in \affineEGV to \linearEGV. We name this translation $\atl{}$. This translation needs access to the typing environment of the program, as dropped names do not necessarily show up in the term. Therefore, we choose to define the translation $\atl{}$ on \emph{typing derivations}, by replacing each application of \ref{rule:egv-ty-weak} with a derived version:%
+\begin{prooftree}
+  \AXC{}
+  \RightLabel{\ref{rule:egv-ty-var}}
+  \UIC{$\gvSeq{\tmty{x}{B}}{x}{B}$}
+  \RightLabel{\ref{rule:egv-ty-cancel}}
+  \UIC{$\gvSeq{\tmty{x}{B}}{\gvCancel{x}}{B}$}
+  \AXC{$\gvSeq{\ty{\Gamma}}{M}{A}$}
+  \RightLabel{\ref{rule:egv-ty-letunit}}
+  \BIC{$\gvSeq{\ty{\Gamma}\st{,}\;\tmty{x}{B}}{\gvLetUnit{\gvCancel{x}}{M}}{A}$}
+\end{prooftree}
+We have a strict operational correspondence between \affineEGV and \linearEGV along $\atl{}$, \ie the following diagrams commute:
+\[
+  \begin{tikzcd}
+    \affineEGV
+    \rar{\gvRedArrPure}
+    \dar{\atl{}}
+    &
+    \affineEGV
+    \dar{\atl{}}
+    \\
+    \linearEGV
+    \rar{\gvRedArrPure}
+    &
+    \linearEGV
+  \end{tikzcd}
+  \quad
+  \begin{tikzcd}
+    \affineEGV
+    \rar{\gvRedArr}
+    \dar{\atl{}}
+    &
+    \affineEGV
+    \dar{\atl{}}
+    \\
+    \linearEGV
+    \rar{\gvRedArr}
+    &
+    \linearEGV
+  \end{tikzcd}
+\]
+The proof is similar to the proof for $\lta{}$, except that it is on the level of typing derivations. From these two operational correspondences, we can infer that \affineEGV preserves the metatheory of \linearEGV: it satisfies preservation and progress, is deadlock free, confluent, and terminating.
+
+There exist variants of $\atl{}$ on the level of terms. However, these are less well-behaved. In defining $\atl{}$ on terms, there is a certain freedom in deciding where to place the explicit cancellation, corresponding to the commuting conversions for weakening. Furthermore, composing $\lta{}$ and $\atl{}$ on the term-level, there is no way to recover dropped free names, unless these are explicitly provided to the hypothetical $\atl{}$.
 
 \subsection{Exceptions and the Option Monad}
+EGV supports exceptions. Rust does not support exceptions. Our second step in investigating EGV's relation to RV is to construct affine asynchronous \emph{GV} (\affineAGV), a variant of \affineEGV which does not support exceptions.
+
+We make four changes to \affineEGV to obtain \affineAGV:
+\begin{enumerate}
+\item
+  Remove the $\gvRaise$ and $\gvTry{L}{x}{M}{N}$ constructs and their corresponding typing and reduction rules.
+\item
+  Add syntactic sugar for an option type, similar to the option type in RV~(\cref{fig:rv-syntactic-sugar}):
+  \\
+  \begin{minipage}{1.0\linewidth}
+    \[%
+      \begin{array}{l}%
+        \!\!\!%
+        \begin{array}{lcl}%
+          \gvTyOpt{A} &::=& \gvTySum{A}{\gvTyUnit}
+          \\
+          \gvSome{x} &::=& \gvInl{x}
+          \\
+          \gvNone &::=& \gvInr{\gvUnit}
+        \end{array}
+        \\
+        \gvCaseOpt{L}{x}{M}{N} ::=
+        \\
+        \quad\gvCaseSum{L}{x}{M}{y}{\gvLetUnit{y}{N}}
+      \end{array}
+    \]
+  \end{minipage}
+\item
+  Change \ref{rule:egv-ty-fork}, \ref{rule:egv-ty-close}, \ref{rule:egv-ty-recv}, \ref{rule:egv-ty-main}, and \ref{rule:egv-ty-child} to mark the possibility for failure, similar to the equivalent rules in RV~(\cref{fig:rv-static-typing}):
+  \begin{center}
+    \begin{prooftree}
+      \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyFun{S}{\gvTyOpt{\gvTyUnit}}}$}
+      \RightLabel{\rlabel{\textsc{T-Fork}}{rule:egv-ty-fork-err}}
+      \UIC{$\gvSeq{\ty{\Gamma}}{\gvFork{M}}{\gvDual{S}}$}
+    \end{prooftree}    
+    \begin{prooftree}
+      \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyEnd}$}
+      \RightLabel{\rlabel{\textsc{T-Close}}{rule:egv-ty-close-err}}
+      \UIC{$\gvSeq{\ty{\Gamma}}{\gvClose{M}}{\gvTyOpt{\gvUnit}}$}
+    \end{prooftree}
+    \begin{prooftree}
+      \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyRecv{A}{S}}$}
+      \RightLabel{\rlabel{\textsc{T-Recv}}{rule:egv-ty-recv-err}}
+      \UIC{$\gvSeq{\ty{\Gamma}}{\gvRecv{M}}{\gvTyOpt{\gvPair{A}{S}}}$}
+    \end{prooftree}
+    \begin{prooftree}
+      \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyOpt{A}}$}
+      \RightLabel{\rlabel{\textsc{T-Main}}{rule:egv-ty-main}}
+      \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagMain}{\gvMain{M}}$}
+    \end{prooftree}
+    \begin{prooftree}
+      \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyOpt{\gvTyUnit}}$}
+      \RightLabel{\rlabel{\textsc{T-Child}}{rule:egv-ty-child}}
+      \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagChild}{\gvChild{M}}$}
+    \end{prooftree}
+  \end{center}
+\item
+  Add reductions to deal with top-level values of the option type:
+  \begin{center}
+    \begin{prooftree}
+      \AXC{}
+      \RightLabel{\rlabel{\textsc{E-HaltChild}}{rule:egv-red-haltchild}}
+      \UIC{$
+        \gvPar{\gvConf{C}}{\gvChild{V}}
+        \gvRedArr
+        \gvConf{C}$}
+    \end{prooftree}%
+    \begin{prooftree}
+      \AXC{}
+      \RightLabel{\rlabel{\textsc{E-HaltMain}}{rule:egv-red-haltmain}}
+      \UIC{$
+        \gvMain{\gvNone}
+        \gvRedArr
+        \gvHalt$}
+    \end{prooftree}
+  \end{center}
+\end{enumerate}
+We can translate programs in \affineEGV to \affineAGV following Filinski~\cite{filinski1994}. We name this translation $\atm{}$. The definition of $\atm{}$ on terms is given in \cref{fig:affine-egv-to-agv}. We extend it to configurations by applying it to all terms in a configuration, \ie in threads and buffers.
+
+TODO something is wrong with buffer typing here; do we want to store failing values in buffers?
 
 \subsection{Channels and Shared State}
+
+\bibliographystyle{ACM-reference-format}
+\bibliography{main}
 
 \end{document}

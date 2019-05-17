@@ -1,13 +1,13 @@
 \begin{figure*}
-  \begin{mdframed}
+  \begin{mdframed}\begin{highlight}
     \begin{minipage}[t]{0.25\textwidth}
-      \header{Term typing}{\seq{\ty{\Gamma}}{M}{A}}
+      \header{Term typing}{\gvSeq{\ty{\Gamma}}{M}{A}}
       \\
       \begin{center}
         \begin{prooftree*}
           \AXC{$\vphantom{\Gamma}$}
-          \RightLabel{\textsc{T-Name}}
-          \UIC{$\seq{\tmty{a}{S}}{a}{S}$}
+          \RightLabel{\rlabel{\textsc{T-Name}}{rule:egv-ty-name}}
+          \UIC{$\gvSeq{\tmty{a}{S}}{a}{S}$}
         \end{prooftree*}
       \end{center}
     \end{minipage}%
@@ -24,33 +24,33 @@
     \end{minipage}%
     \hspace*{0.05\textwidth}%
     \begin{minipage}[t]{0.4\textwidth}
-      \header{Queue typing}{\seq{\ty{\Gamma}}{\gvVec{V}}{\gvTyVec{A}}}
+      \header{Queue typing}{\gvSeq{\ty{\Gamma}}{\gvVec{V}}{\gvTyVec{A}}}
       \\
       \begin{center}
         \begin{prooftree*}
           \AXC{$\vphantom{\Gamma}$}
-          \UIC{$\seq{\emptyenv}{\gvVecEmp}{\gvVecEmp}$}
+          \UIC{$\gvSeq{\emptyenv}{\gvVecEmp}{\gvVecEmp}$}
         \end{prooftree*}%
         \begin{prooftree*}
-          \AXC{$\seq{\ty{\Gamma}}{V}{A}$}
-          \AXC{$\seq{\ty{\Delta}}{\gvVec{V}}{\gvTyVec{A}}$}
-          \BIC{$\seq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\tm{V}\gvVecAdd\gvVec{V}}{\ty{A}\gvVecAdd\gvTyVec{A}}$}
+          \AXC{$\gvSeq{\ty{\Gamma}}{V}{A}$}
+          \AXC{$\gvSeq{\ty{\Delta}}{\gvVec{V}}{\gvTyVec{A}}$}
+          \BIC{$\gvSeq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\tm{V}\gvVecAdd\gvVec{V}}{\ty{A}\gvVecAdd\gvTyVec{A}}$}
         \end{prooftree*}
       \end{center}
     \end{minipage}%
     \vspace{1\baselineskip}
-    \header{Configuration typing}{\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}}
+    \header{Configuration typing}{\gvCSeq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}}
     \begin{center}
       \begin{prooftree*}
-        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvTyLock{S}}}{\phi}{\gvConf{C}}$}
-        \RightLabel{\textsc{T-New}}
-        \UIC{$\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvRes{a}{\gvConf{C}}}$}
+        \AXC{$\gvCSeq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvTyLock{S}}}{\phi}{\gvConf{C}}$}
+        \RightLabel{\rlabel{\textsc{T-New}}{rule:egv-ty-new}}
+        \UIC{$\gvCSeq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvRes{a}{\gvConf{C}}}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$}
-        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}}{\psi}{\gvConf{D}}$}
-        \RightLabel{\textsc{T-Par}}
-        \BIC{$\cseq%
+        \AXC{$\gvCSeq{\ty{\Gamma}}{\ty{\Phi}}{\phi}{\gvConf{C}}$}
+        \AXC{$\gvCSeq{\ty{\Delta}}{\ty{\Psi}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\rlabel{\textsc{T-Par}}{rule:egv-ty-par}}
+        \BIC{$\gvCSeq%
           {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
           {\ty{\Phi}\st{,}\;\ty{\Psi}}%
           {\phi+\psi}%
@@ -59,20 +59,20 @@
       \setstretch{2.5}
 
       \begin{prooftree*}
-        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{S}}{\phi}{\gvConf{C}}$}
-        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{\gvDual{S}}}{\psi}{\gvConf{D}}$}
-        \RightLabel{\textsc{T-Syn}$_1$}
-        \BIC{$\cseq%
+        \AXC{$\gvCSeq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{S}}{\phi}{\gvConf{C}}$}
+        \AXC{$\gvCSeq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{\gvDual{S}}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\rlabel{\textsc{T-Syn}$_1$}{rule:egv-ty-syn1}}
+        \BIC{$\gvCSeq%
           {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
           {\ty{\Phi}\st{,}\;\ty{\Psi}\st{,}\;\tmty{a}{\gvTyLock{S}}}%
           {\phi+\psi}%
           {\gvPar{\gvConf{C}}{\gvConf{D}}}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\cseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvDual{S}}}{\phi}{\gvConf{C}}$}
-        \AXC{$\cseq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{S}}{\psi}{\gvConf{D}}$}
-        \RightLabel{\textsc{T-Syn}$_2$}
-        \BIC{$\cseq%
+        \AXC{$\gvCSeq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\gvDual{S}}}{\phi}{\gvConf{C}}$}
+        \AXC{$\gvCSeq{\ty{\Delta}}{\ty{\Psi}\st{,}\;\tmty{a}{S}}{\psi}{\gvConf{D}}$}
+        \RightLabel{\rlabel{\textsc{T-Syn}$_2$}{rule:egv-ty-syn2}}
+        \BIC{$\gvCSeq%
           {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
           {\ty{\Phi}\st{,}\;\ty{\Psi}\st{,}\;\tmty{a}{\gvTyLock{S}}}%
           {\phi+\psi}%
@@ -80,32 +80,32 @@
       \end{prooftree*}
 
       \begin{prooftree*}
-        \AXC{$\seq{\ty{\Gamma}}{M}{A}$}
-        \RightLabel{\textsc{T-Main}}
-        \UIC{$\cseq{\ty{\Gamma}}{\emptyenv}{\gvFlagMain}{\gvMain{M}}$}
+        \AXC{$\gvSeq{\ty{\Gamma}}{M}{A}$}
+        \RightLabel{\rlabel{\textsc{T-Main}}{rule:egv-ty-main}}
+        \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagMain}{\gvMain{M}}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\seq{\ty{\Gamma}}{M}{\gvTyUnit}$}
-        \RightLabel{\textsc{T-Child}}
-        \UIC{$\cseq{\ty{\Gamma}}{\emptyenv}{\gvFlagChild}{\gvChild{M}}$}
-      \end{prooftree*}
-      \begin{prooftree*}
-        \AXC{$\vphantom{\Gamma}$}
-        \RightLabel{\textsc{T-Halt}}
-        \UIC{$\cseq{\emptyenv}{\emptyenv}{\gvFlagMain}{\gvHalt}$}
+        \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyUnit}$}
+        \RightLabel{\rlabel{\textsc{T-Child}}{rule:egv-ty-child}}
+        \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagChild}{\gvChild{M}}$}
       \end{prooftree*}
       \begin{prooftree*}
         \AXC{$\vphantom{\Gamma}$}
-        \RightLabel{\textsc{T-Zap}}
-        \UIC{$\cseq{\tmty{a}{S}}{\emptyenv}{\gvFlagChild}{\gvZap{a}}$}
+        \RightLabel{\rlabel{\textsc{T-Halt}}{rule:egv-ty-halt}}
+        \UIC{$\gvCSeq{\emptyenv}{\emptyenv}{\gvFlagMain}{\gvHalt}$}
+      \end{prooftree*}
+      \begin{prooftree*}
+        \AXC{$\vphantom{\Gamma}$}
+        \RightLabel{\rlabel{\textsc{T-Zap}}{rule:egv-ty-zap}}
+        \UIC{$\gvCSeq{\tmty{a}{S}}{\emptyenv}{\gvFlagChild}{\gvZap{a}}$}
       \end{prooftree*}
 
       \begin{prooftree*}
-        \AXC{$\seq{\ty{\Gamma}\st{,}\;\tmty{a}{S}}{\gvVec{V}}{\gvTyVec{A}}$}
-        \AXC{$\seq{\ty{\Delta}\st{,}\;\tmty{a}{T}}{\gvVec{W}}{\gvTyVec{B}}$}
+        \AXC{$\gvSeq{\ty{\Gamma}\st{,}\;\tmty{a}{S}}{\gvVec{V}}{\gvTyVec{A}}$}
+        \AXC{$\gvSeq{\ty{\Delta}\st{,}\;\tmty{a}{T}}{\gvVec{W}}{\gvTyVec{B}}$}
         \AXC{$\gvSlice{S}{\gvTyVec{A}}=\gvDual{\gvSlice{T}{\gvTyVec{B}}}$}
-        \RightLabel{\textsc{T-Buf}}
-        \TIC{$\cseq%
+        \RightLabel{\rlabel{\textsc{T-Buf}}{rule:egv-ty-buf}}
+        \TIC{$\gvCSeq%
           {\ty{\Gamma}\st{,}\;\ty{\Delta}}%
           {\tmty{a}{S}\st{,}\;\tmty{b}{\gvDual{S}}}%
           {\gvFlagChild}%
@@ -160,8 +160,7 @@
         \end{prooftree*}
       \end{center}
     \end{minipage}%
-
-  \end{mdframed}
+  \end{highlight}\end{mdframed}
   \caption{Exceptional GV, runtime typing.}
   \label{fig:egv-runtime-typing}
 \end{figure*}

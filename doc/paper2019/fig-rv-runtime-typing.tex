@@ -1,59 +1,59 @@
 \begin{figure*}
   \begin{mdframed}
 
-    \header{Configuration typing}{\rvcseq{\ty{\Gamma}}{\phi}{\rvConf{C}}}
+    \header{Configuration typing}{\rvCSeq{\ty{\Gamma}}{\phi}{\rvConf{C}}}
     \begin{center}
       \begin{prooftree*}
-        \AXC{$\rvseq{\ty{\Gamma}}{\rvTm{M}}{A}$}
+        \AXC{$\rvSeq{\ty{\Gamma}}{\rvTm{M}}{A}$}
         \RightLabel{\textsc{T-Main}}
-        \UIC{$\rvcseq{\ty{\Gamma}}{\rvFlagMain}{\rvMain{M}}$}
+        \UIC{$\rvCSeq{\ty{\Gamma}}{\rvFlagMain}{\rvMain{M}}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\rvseq{\ty{\Gamma}}{\rvTm{M}}{\rvTyUnit}$}
+        \AXC{$\rvSeq{\ty{\Gamma}}{\rvTm{M}}{\rvTyUnit}$}
         \RightLabel{\textsc{T-Child}}
-        \UIC{$\rvcseq{\ty{\Gamma}}{\rvFlagChild}{\rvChild{M}}$}
+        \UIC{$\rvCSeq{\ty{\Gamma}}{\rvFlagChild}{\rvChild{M}}$}
       \end{prooftree*}
       \begin{prooftree*}
         \AXC{$\vphantom{\Gamma}$}
         \RightLabel{\textsc{T-Panic}}
-        \UIC{$\rvcseq{\emptyenv}{\rvFlagMain}{\rvPanic{}}$}
+        \UIC{$\rvCSeq{\emptyenv}{\rvFlagMain}{\rvPanic{}}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\rvcseq{\ty{\Gamma}}{\phi}{\rvConf{C}}$}
-        \AXC{$\rvcseq{\ty{\Delta}}{\psi}{\rvConf{D}}$}
+        \AXC{$\rvCSeq{\ty{\Gamma}}{\phi}{\rvConf{C}}$}
+        \AXC{$\rvCSeq{\ty{\Delta}}{\psi}{\rvConf{D}}$}
         \RightLabel{\textsc{T-Par}}
-        \BIC{$\rvcseq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\phi+\psi}{\rvConf{C}\st{,}\;\rvConf{D}}$}
+        \BIC{$\rvCSeq{\ty{\Gamma}\st{,}\;\ty{\Delta}}{\phi+\psi}{\rvConf{C}\st{,}\;\rvConf{D}}$}
       \end{prooftree*}
     \end{center}
 
-    \header{Heap typing}{\rvhseq{\ty{\Gamma}}{\ty{\Psi}}{\rvHeap{H}}}
+    \header{Heap typing}{\rvHSeq{\ty{\Gamma}}{\ty{\Psi}}{\rvHeap{H}}}
     \begin{center}
       \setstretch{2.5}
       \begin{prooftree*}
         \AXC{$\vphantom{\Gamma}$}
         \RightLabel{\textsc{T-Heap-Nil}}
-        \UIC{$\rvhseq{\ty{\Gamma}}{\emptyenv}{\rvHeapEmp}$}
+        \UIC{$\rvHSeq{\ty{\Gamma}}{\emptyenv}{\rvHeapEmp}$}
       \end{prooftree*}
       \begin{prooftree*}
-        \AXC{$\rvhseq{\ty{\Gamma}}{\ty{\Phi}}{\rvHeap{H}}$}
+        \AXC{$\rvHSeq{\ty{\Gamma}}{\ty{\Phi}}{\rvHeap{H}}$}
         \RightLabel{\textsc{T-Heap-Empty}}
-        \UIC{$\rvhseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\rvTy{S}}\st{,}\;\tmty{b}{\rvDual{S}}}{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}$}
+        \UIC{$\rvHSeq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{a}{\rvTy{S}}\st{,}\;\tmty{b}{\rvDual{S}}}{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}$}
       \end{prooftree*}
 
       \begin{prooftree*}
-        \AXC{$\rvhseq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{c}{S}}{\rvHeap{H}}$}
-        \AXC{$\rvseq{\ty{\Gamma}}{V}{A}$}
+        \AXC{$\rvHSeq{\ty{\Gamma}}{\ty{\Phi}\st{,}\;\tmty{c}{S}}{\rvHeap{H}}$}
+        \AXC{$\rvSeq{\ty{\Gamma}}{V}{A}$}
         \RightLabel{\textsc{T-Heap-Data}}
-        \BIC{$\rvhseq%
+        \BIC{$\rvHSeq%
           {\ty{\Gamma}}%
           {\ty{\Phi}\st{,}\;\tmty{c}{\rvTy{S}}\st{,}\;\tmty{b}{\rvTyRecv{A}{\rvDual{S}}}}%
           {\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemData{V}{c}}}$}
       \end{prooftree*}
 
       \begin{prooftree*}
-        \AXC{$\rvhseq{\ty{\Gamma}}{\ty{\Phi}}{\rvHeap{H}}$}
+        \AXC{$\rvHSeq{\ty{\Gamma}}{\ty{\Phi}}{\rvHeap{H}}$}
         \RightLabel{\textsc{T-Heap-Disc}$_1$}
-        \UIC{$\rvhseq%
+        \UIC{$\rvHSeq%
           {\ty{\Gamma}}%
           {\ty{\Phi}\st{,}\;\tmty{a}{\rvTy{S}}\st{,}\;\tmty{b}{\rvDual{S}}}%
           {\rvHeapDisc{\rvHeap{H}}{a}{b}}$}

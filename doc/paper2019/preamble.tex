@@ -1,9 +1,13 @@
+% commutative diagrams
+\usepackage{tikz}
+\usetikzlibrary{cd}
+
 \usepackage{xspace}
 \newcommand*{\eg}{e.g.\@\xspace}
 \newcommand*{\ie}{i.e.\@\xspace}
-
-\usepackage{hyperref}
-\usepackage{cleveref}
+\newcommand*{\linearEGV}{\ensuremath{\text{EGV}_{\!L}}\xspace}
+\newcommand*{\affineEGV}{\ensuremath{\text{EGV}_{\!A}}\xspace}
+\newcommand*{\affineAGV}{\ensuremath{\text{AGV}_{\!A}}\xspace}
 
 \usepackage{cmll}
 \usepackage{setspace}
@@ -18,23 +22,38 @@
 \definecolor{stcolor}{HTML}{000000}
 \definecolor{tmcolor}{HTML}{4791d4}
 \definecolor{tycolor}{HTML}{ce537a}
-\newcommand{\st}[1]{\textcolor{stcolor}{#1}}
-\newcommand{\tm}[1]{\textcolor{tmcolor}{#1}}
-\newcommand{\ty}[1]{\textcolor{tycolor}{#1}}
+\let\tm\relax
+\let\ty\relax
+\let\st\relax
+\newenvironment{highlight}
+	{\ignorespaces%
+	 \def\tm##1{\textcolor{tmcolor}{##1}}%
+	 \def\ty##1{\textcolor{tycolor}{##1}}%
+	 \def\st##1{\textcolor{stcolor}{##1}}}%
+	{\let\tm\relax%
+	 \let\ty\relax%
+	 \let\st\relax%
+	 \ignorespacesafterend}
+\newcommand{\hl}[1]{\highlight#1\endhighlight}
+
+
 \newcommand{\tmty}[2]{\tm{#1}:\ty{#2}}
-\newcommand{\seq}[3]{#1\vdash\tmty{#2}{#3}}
-\newcommand{\cseq}[4]{#1\st{;}\;#2\;{\vdash}^{#3}\;\tm{#4}}
-\newcommand{\rvseq}[3]{\seq{\texttt{\ensuremath{#1}}}{\rvTm{#2}}{\rvTy{#3}}}
-\newcommand{\rvcseq}[3]{#1\;\st{\vdash}^{#2}\;\rvTm{#3}}
-\newcommand{\rvhseq}[3]{#1\st{;}\;#2\;\st{\vdash}\;\tm{#3}}
+\newcommand{\gvSeq}[3]{#1\vdash\tmty{#2}{#3}}
+\newcommand{\gvCSeq}[4]{#1\st{;}\;#2\;{\vdash}^{#3}\;\tm{#4}}
+\newcommand{\rvSeq}[3]{\gvSeq{\texttt{\ensuremath{#1}}}{\rvTm{#2}}{\rvTy{#3}}}
+\newcommand{\rvCSeq}[3]{#1\;\st{\vdash}^{#2}\;\rvTm{#3}}
+\newcommand{\rvHSeq}[3]{#1\st{;}\;#2\;\st{\vdash}\;\tm{#3}}
 \newcommand{\sep}[0]{\;\mid\;}
 
 \newcommand{\header}[2]{%
 \parbox{0.5\textwidth}{#1}%
 \parbox{0.5\textwidth}{\raggedleft\boxed{#2}}}
 
-\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}^{L}_{A}}\tm{#1}}}
-\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}^{L}_{A}}\tm{#1}}}
+\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}_{A}}#1}}
+\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}_{A}}#1}}
+\newcommand{\atm}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{opt}}}#1}}
+\newcommand{\mta}[1]{\ensuremath{\st{{\uparrow}_{\mathbf{opt}}}#1}}
+
 
 \newcommand{\ftm}[2][]{\ensuremath{%
     \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
@@ -44,9 +63,11 @@
 
 % GV syntax
 
+\newcommand{\parens}[1]{\st{(}#1\st{)}}
 \newcommand{\gvTyUnit}[0]{\st{\mathbf{1}}}
 \newcommand{\gvTyFun}[2]{\ty{#1}\mathbin{\st{\multimap}}\ty{#2}}
 \newcommand{\gvTySum}[2]{\ty{#1}\mathbin{\st{+}}\ty{#2}}
+\newcommand{\gvTyOpt}[1]{\st{\mathbf{opt}}\,\ty{#1}}
 \newcommand{\gvTyPair}[2]{\ty{#1}\mathbin{\st{\times}}\ty{#2}}
 
 \newcommand{\gvTySend}[2]{\st{!}\ty{#1}\st{.}\ty{#2}}
@@ -57,6 +78,11 @@
 \newcommand{\gvTyLock}[1]{\ty{#1}^{\st{\#}}}
 
 \newcommand{\emptyenv}[0]{\cdot}
+
+\newcommand{\gvDo}[3]{\ensuremath{%
+    \st{\textbf{let}}\;\tm{#1}\;\st{=}\;\tm{#2}\st{?;}\;\tm{#3}}}
+\newcommand{\gvDoDef}[3]{\gvCaseOpt{#2}{#1}{#3}{\gvNone}}
+
 
 \newcommand{\gvVar}[1]{\tm{#1}}
 \newcommand{\gvAbs}[3][]{\ensuremath{%
@@ -76,6 +102,12 @@
     \st{\mathbf{case}}\;\tm{#1}\;\st{\{}%
     \gvInl{#2}\mathbin{\st{\mapsto}}\tm{#3}\st{;}\;%
     \gvInr{#4}\mathbin{\st{\mapsto}}\tm{#5}\st{\}}}}
+\newcommand{\gvSome}[1]{\ensuremath{\st{\mathbf{some}}\;\tm{#1}}}
+\newcommand{\gvNone}[0]{\ensuremath{\st{\mathbf{none}}}}
+\newcommand{\gvCaseOpt}[4]{\ensuremath{%
+    \st{\mathbf{case}}\;\tm{#1}\;\st{\{}%
+    \gvSome{#2}\mathbin{\st{\mapsto}}\tm{#3}\st{;}\;%
+    \gvNone\mathbin{\st{\mapsto}}\tm{#4}\st{\}}}}
 \newcommand{\gvFork}[1]{\ensuremath{%
     \gvApp{\st{\mathbf{fork}}}{\tm{#1}}}}
 \newcommand{\gvSend}[2]{\ensuremath{%
@@ -128,6 +160,9 @@
 % RV syntax
 
 \newcommand{\rvTy}[1]{\texttt{\ty{#1}}}
+\newcommand{\rvTm}[1]{\texttt{\tm{#1}}}
+\newcommand{\rvSt}[1]{\texttt{\st{#1}}}
+
 \newcommand{\rvTyUnit}[0]{\texttt{\st{()}}}
 \newcommand{\rvTyFun}[2]{\texttt{\ty{FnOnce}\st{(}\ty{#1}\st{)}\;\st{$\rightarrow$}\;\ty{#2}}}
 \newcommand{\rvTySum}[2]{\texttt{\ty{Either}\st{<}\ty{#1}\st{,}\;\ty{#2}\st{>}}}
@@ -139,7 +174,6 @@
 \newcommand{\rvTyEnd}[0]{\texttt{\ty{End}}}
 \newcommand{\rvDual}[1]{\texttt{\ty{#1}\st{:\!:}\ty{Dual}}}
 
-\newcommand{\rvTm}[1]{\texttt{\tm{#1}}}
 \newcommand{\rvAbs}[3][]{\texttt{%
     \st{\textbf{move}}\;\st{{|}}\tm{#2}\st{:}\ty{#1}\st{{|}}\;\st{\{}\;\tm{#3}\;\st{\}}}}
 \newcommand{\rvApp}[2]{\texttt{\tm{#1}\st{(}\tm{#2}\st{)}}}
@@ -204,3 +238,35 @@
 \newcommand{\rvRed}[5][\rvConf{C}]{\rvRedTup[#1]{#2}{#3}\rvRedArr\rvRedTup[#1]{#4}{#5}}
 \newcommand{\rvRedArrPure}[0]{\mathrel{\st{\longrightarrow_{M}}}}
 \newcommand{\rvRedPure}[2]{\texttt{\tm{#1}}\rvRedArrPure\texttt{\tm{#2}}}
+
+%%% cleveref and custom labels
+
+\usepackage{hyperref}
+\usepackage{nameref}
+\usepackage[capitalise,nameinlink,noabbrev]{cleveref}
+
+\makeatletter
+\newcommand{\customlabel}[4][0]{%
+	\protected@write\@auxout{}{\string\newlabel{#3}{{#4}{\thepage}{#4}{#3}{}}}%
+	\protected@write\@auxout{}{\string\newlabel{#3@cref}{{[#2][#1][#1]#4}{\thepage}}}%
+}
+\newcommand{\phantomlabel}[4][0]{%
+	\customlabel[#1]{#2}{#3}{#4}%
+	\hypertarget{#3}{}%
+}
+\newcommand{\crefv}[1]{%
+	\begingroup\@cref@compressfalse\@cref@sortfalse\cref{#1}\endgroup%
+}
+\newcommand{\Crefv}[1]{%
+	\begingroup\@cref@compressfalse\@cref@sortfalse\Cref{#1}\endgroup%
+}
+\newcommand{\crefabbrev}[1]{%
+	\begingroup\@cref@abbrevtrue\cref{#1}\endgroup%
+}
+\makeatother
+
+\newcommand{\rlabel}[2]{{%
+	\customlabel{infrule}{#2}{#1}%
+	\hypertarget{#2}{#1}}}
+\crefname{infrule}{rule}{rules}
+\Crefname{infrule}{Rule}{Rules}
