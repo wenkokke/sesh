@@ -87,12 +87,69 @@
         \\
         \atm{\parens{\gvClose{M}}}
         & = & \gvSome{\parens{\gvClose{M}}}
-        \\[1ex]
-        \multicolumn{3}{c}{%
-        \text{(where all variables introduced on the right-hand side are fresh)}}
       \end{array}
     \]
+    Definition of $\atm{}$ on configurations:%
+    \[
+      \begin{array}{lcl}
+        \atm{\parens{\gvThread{\phi}{M}}}
+        & = & \atm{M}
+        \\
+        \atm{\parens{\gvRes{a}{\gvConf{C}}}}
+        & = & \gvRes{a}{\parens{\atm{\gvConf{C}}}}
+        \\
+        \atm{\parens{\gvPar{\gvConf{C}}{\gvConf{D}}}}
+        & = & \gvPar{\atm{\gvConf{C}}}{\atm{\gvConf{D}}}
+        \\
+      \end{array}
+      \quad
+      \begin{array}{lcl}
+        \atm{\parens{\gvHalt}}
+        & = & \gvHalt
+        \\
+        \atm{\parens{\gvZap{a}}}
+        & = & \gvZap{a}
+        \\
+        \atm{\parens{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        & = & \gvBuf{a}{\atv{\gvVec{V}}}{b}{\atv{\gvVec{W}}}
+      \end{array}
+    \]
+    Definition of $\atm{}$ on queues:%
+    \[
+      \begin{array}{lcl}
+        \atv{\gvVecEmp}
+        & = & \gvVecEmp
+        \\
+        \atv{\tm{a}}
+        & = & \tm{a}
+        \\
+        \atv{\parens{\gvAbs[A]{x}{M}}}
+        & = & \gvAbs[\ftm{A}]{x}{\atm{M}}
+        \\
+        \atv{\gvUnit}
+        & = & \gvUnit
+      \end{array}
+      \quad
+      \begin{array}{lcl}
+        \atv{\parens{U\gvVecAdd\gvVec{V}}}
+        & = & \atv{U}\gvVecAdd\atv{\gvVec{V}}
+        \\
+        \atv{\gvPair{M}{N}}
+        & = & \gvPair{\atv{M}}{\atv{N}}
+        \\
+        \atv{\parens{\gvInl{M}}}
+        & = & \gvInl{\atv{M}}
+        \\
+        \atv{\parens{\gvInr{M}}}
+        & = & \gvInr{\atv{M}}
+      \end{array}
+    \]
+    All variables introduced on the right-hand sides of translations are fresh.
   \end{highlight}\end{mdframed}
-  \caption[\affineEGV to \affineAGV]{Translation from \affineEGV to \affineAGV.}
+  \caption{Translation from \affineEGV to \affineAGV.}
   \label{fig:affine-egv-to-agv}
 \end{figure*}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% End:

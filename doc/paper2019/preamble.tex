@@ -49,10 +49,11 @@
 \parbox{0.5\textwidth}{#1}%
 \parbox{0.5\textwidth}{\raggedleft\boxed{#2}}}
 
-\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}_{A}}#1}}
-\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}_{A}}#1}}
-\newcommand{\atm}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{opt}}}#1}}
-\newcommand{\mta}[1]{\ensuremath{\st{{\uparrow}_{\mathbf{opt}}}#1}}
+\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}_{A}}\tm{#1}}}
+\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}_{A}}\tm{#1}}}
+\newcommand{\atm}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{opt}}}\tm{#1}}}
+\newcommand{\atv}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{val}}}\tm{#1}}}
+\newcommand{\mta}[1]{\ensuremath{\st{{\uparrow}_{\mathbf{opt}}}\tm{#1}}}
 
 
 \newcommand{\ftm}[2][]{\ensuremath{%

@@ -29,6 +29,7 @@
 \input{fig-egv-runtime-syntax}
 \input{fig-egv-runtime-typing}
 \input{fig-egv-reduction}
+\input{fig-affine-egv-to-agv}
 
 \section{Rusty Variation}
 
@@ -37,7 +38,6 @@
 \input{fig-rv-static-typing}
 \input{fig-rv-runtime-syntax}
 \input{fig-rv-reduction}
-\input{fig-affine-egv-to-agv}
 
 \subsection{Linear and Affine EGV}
 EGV is a linear language, in the sense that it does not allow the implicit discarding of names, \ie implicit weakening. However, it does support \emph{explicit} weakening, in the form of \ref{rule:egv-ty-cancel}. RV supports implicit weakening. Our first step in investigating EGV's relation to RV is construct \emph{affine} EGV, a variant of EGV which \emph{does} support implicit weakening.
@@ -198,16 +198,16 @@ We make four changes to \affineEGV to obtain \affineAGV:
       \RightLabel{\rlabel{\textsc{T-Recv}}{rule:egv-ty-recv-err}}
       \UIC{$\gvSeq{\ty{\Gamma}}{\gvRecv{M}}{\gvTyOpt{\gvPair{A}{S}}}$}
     \end{prooftree}
-    \begin{prooftree}
+    \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyOpt{A}}$}
       \RightLabel{\rlabel{\textsc{T-Main}}{rule:egv-ty-main}}
       \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagMain}{\gvMain{M}}$}
-    \end{prooftree}
-    \begin{prooftree}
+    \end{prooftree*}%
+    \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyOpt{\gvTyUnit}}$}
       \RightLabel{\rlabel{\textsc{T-Child}}{rule:egv-ty-child}}
       \UIC{$\gvCSeq{\ty{\Gamma}}{\emptyenv}{\gvFlagChild}{\gvChild{M}}$}
-    \end{prooftree}
+    \end{prooftree*}
   \end{center}
 \item
   Add reductions to deal with top-level values of the option type:
@@ -230,9 +230,7 @@ We make four changes to \affineEGV to obtain \affineAGV:
     \end{prooftree}
   \end{center}
 \end{enumerate}
-We can translate programs in \affineEGV to \affineAGV following Filinski~\cite{filinski1994}. We name this translation $\atm{}$. The definition of $\atm{}$ on terms is given in \cref{fig:affine-egv-to-agv}. We extend it to configurations by applying it to all terms in a configuration, \ie in threads and buffers.
-
-TODO something is wrong with buffer typing here; do we want to store failing values in buffers?
+We can translate programs in \affineEGV to \affineAGV following Filinski~\cite{filinski1994}. We name this translation $\atm{}$. The definition of $\atm{}$ is given in \cref{fig:affine-egv-to-agv}.
 
 \subsection{Channels and Shared State}
 
