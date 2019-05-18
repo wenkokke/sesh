@@ -11,32 +11,21 @@
       \end{array}
     \] 
     Definition of $\ftm{\cdot}$ on types and session types:%
-    \begin{center}
-      \begin{minipage}[t]{0.5\linewidth}
-        \[
-          \begin{array}{lcl}
-            \ftm{\gvTyUnit}         & = & \gvTyUnit
-            \\
-            \ftm{{\gvTyFun{A}{B}}}  & = & \gvTyFun{\ftm{A}}{\gvTyOpt{\ftm{B}}}
-            \\
-            \ftm{{\gvTySum{A}{B}}}  & = & \gvTySum{\ftm{A}}{\ftm{B}}
-            \\
-            \ftm{{\gvTyPair{A}{B}}} & = & \gvTyPair{\ftm{A}}{\ftm{B}}
-          \end{array}
-        \]
-      \end{minipage}%
-      \begin{minipage}[t]{0.5\linewidth}
-        \[
-          \begin{array}{lcl}
-            \ftm{{\gvTySend{A}{S}}} & = & \gvTySend{\ftm{A}}{\ftm{S}}
-            \\
-            \ftm{{\gvTyRecv{A}{S}}} & = & \gvTyRecv{\ftm{A}}{\ftm{S}}
-            \\
-            \ftm{\gvTyEnd}          & = & \gvTyEnd
-          \end{array}
-        \]
-      \end{minipage}
-    \end{center}
+    \begin{gather*}
+      \ftm{\gvTyUnit}         = \gvTyUnit
+      \qquad
+      \ftm{{\gvTyFun{A}{B}}}  = \gvTyFun{\ftm{A}}{\gvTyOpt{\ftm{B}}}
+      \qquad
+      \ftm{{\gvTySum{A}{B}}}  = \gvTySum{\ftm{A}}{\ftm{B}}
+      \qquad
+      \ftm{{\gvTyPair{A}{B}}} = \gvTyPair{\ftm{A}}{\ftm{B}}
+      \\
+      \ftm{{\gvTySend{A}{S}}} = \gvTySend{\ftm{A}}{\ftm{S}}
+      \qquad
+      \ftm{{\gvTyRecv{A}{S}}} = \gvTyRecv{\ftm{A}}{\ftm{S}}
+      \qquad
+      \ftm{\gvTyEnd}          = \gvTyEnd
+    \end{gather*}
     Definition of $\atm{}$ on terms:%
     \[
       \begin{array}{lcl}
@@ -73,6 +62,12 @@
         \atm{\parens{\gvCaseSum{L}{x}{M}{y}{N}}}
         & = & \gvDo{z}{L}{{\gvCaseSum{z}{x}{\atm{M}}{y}{\atm{N}}}}
         \\
+        \atm{\gvRaise}
+        & = & \gvNone
+        \\
+        \atm{\parens{\gvTry{L}{x}{M}{N}}}
+        & = & \gvCaseOpt{L}{x}{\atm{M}}{\atm{N}}
+        \\
         \atm{\parens{\gvCancel{M}}}
         & = & \gvDo{\gvUnit}{\atm{M}}{\gvSome{\gvUnit}}
         \\
@@ -86,7 +81,7 @@
         & = & \gvDo{x}{\atm{M}}{{\gvRecv{x}}}
         \\
         \atm{\parens{\gvClose{M}}}
-        & = & \gvSome{\parens{\gvClose{M}}}
+        & = & \gvDo{x}{\atm{M}}{\gvClose{x}}
       \end{array}
     \]
     Definition of $\atm{}$ on configurations:%
@@ -100,23 +95,7 @@
         \\
         \atm{\parens{\gvPar{\gvConf{C}}{\gvConf{D}}}}
         & = & \gvPar{\atm{\gvConf{C}}}{\atm{\gvConf{D}}}
-        \\
-      \end{array}
-      \quad
-      \begin{array}{lcl}
-        \atm{\parens{\gvHalt}}
-        & = & \gvHalt
-        \\
-        \atm{\parens{\gvZap{a}}}
-        & = & \gvZap{a}
-        \\
-        \atm{\parens{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
-        & = & \gvBuf{a}{\atv{\gvVec{V}}}{b}{\atv{\gvVec{W}}}
-      \end{array}
-    \]
-    Definition of $\atm{}$ on queues:%
-    \[
-      \begin{array}{lcl}
+        \\[1ex]
         \atv{\gvVecEmp}
         & = & \gvVecEmp
         \\
@@ -129,8 +108,17 @@
         \atv{\gvUnit}
         & = & \gvUnit
       \end{array}
-      \quad
+      \qquad
       \begin{array}{lcl}
+        \atm{\parens{\gvHalt}}
+        & = & \gvHalt
+        \\
+        \atm{\parens{\gvZap{a}}}
+        & = & \gvZap{a}
+        \\
+        \atm{\parens{\gvBuf{a}{\gvVec{V}}{b}{\gvVec{W}}}}
+        & = & \gvBuf{a}{\atv{\gvVec{V}}}{b}{\atv{\gvVec{W}}}
+        \\[1ex]
         \atv{\parens{U\gvVecAdd\gvVec{V}}}
         & = & \atv{U}\gvVecAdd\atv{\gvVec{V}}
         \\

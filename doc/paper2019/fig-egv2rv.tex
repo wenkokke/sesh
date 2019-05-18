@@ -30,31 +30,31 @@
       & = & \rvSome{\rvAbs[\ftm{A}]{x}{\ftm{M}}}
       \\
       \ftm{\gvApp{M}{N}}
-      & = & \rvTry{f}{\ftm{M}}{{\rvTry{x}{\ftm{N}}{\rvApp{f}{x}}}}
+      & = & \rvDo{f}{\ftm{M}}{{\rvDo{x}{\ftm{N}}{\rvApp{f}{x}}}}
       \\
       \ftm{\gvUnit}
       & = & \rvSome{\rvUnit}
       \\
       \ftm{\gvLetUnit{M}{N}}
-      & = & \rvTry{\rvUnit}{\ftm{M}}{{\ftm{N}}}
+      & = & \rvDo{\rvUnit}{\ftm{M}}{{\ftm{N}}}
       \\
       \ftm{\gvPair{M}{N}}
-      & = & \rvTry{x}{\ftm{M}}{{\rvTry{y}{\ftm{N}}{{\rvSome{\rvPair{x}{y}}}}}}
+      & = & \rvDo{x}{\ftm{M}}{{\rvDo{y}{\ftm{N}}{{\rvSome{\rvPair{x}{y}}}}}}
       \\
       \ftm{\gvLetPair{x}{y}{M}{N}}
-      & = & \rvTry{\rvPair{x}{y}}{\ftm{M}}{\ftm{N}}
+      & = & \rvDo{\rvPair{x}{y}}{\ftm{M}}{\ftm{N}}
       \\
       \ftm{\gvInl{M}}
-      & = & \rvTry{x}{\ftm{M}}{\rvSome{\rvInl{x}}}
+      & = & \rvDo{x}{\ftm{M}}{\rvSome{\rvInl{x}}}
       \\
       \ftm{\gvInr{M}}
-      & = & \rvTry{x}{\ftm{M}}{\rvSome{\rvInr{x}}}
+      & = & \rvDo{x}{\ftm{M}}{\rvSome{\rvInr{x}}}
       \\
       \ftm{\gvCaseSum{L}{x}{M}{y}{N}}
-      & = & \rvTry{z}{L}{{\rvCaseSum{z}{x}{\ftm{M}}{y}{\ftm{N}}}}
+      & = & \rvDo{z}{L}{{\rvCaseSum{z}{x}{\ftm{M}}{y}{\ftm{N}}}}
       \\
       \ftm{\gvCancel{M}}
-      & = & \rvTry{\rvUnit}{\ftm{M}}{\rvSome{\rvUnit}}
+      & = & \rvDo{\rvUnit}{\ftm{M}}{\rvSome{\rvUnit}}
       \\
       \ftm{\gvTry{L}{x}{M}{N}}
       & = & \rvCaseOpt{\ftm{L}}{x}{\ftm{M}}{\ftm{N}}
@@ -66,10 +66,10 @@
       & = & \rvSome{\rvFork{\ftm{M}}}
       \\
       \ftm{\gvSend{M}{N}}
-      & = & \rvTry{x}{\ftm{M}}{{\rvTry{y}{\ftm{N}}{\rvSome{\rvSend{x}{y}}}}}
+      & = & \rvDo{x}{\ftm{M}}{{\rvDo{y}{\ftm{N}}{\rvSome{\rvSend{x}{y}}}}}
       \\
       \ftm{\gvRecv{M}}
-      & = & \rvTry{x}{\ftm{M}}{{\rvRecv{x}}}
+      & = & \rvDo{x}{\ftm{M}}{{\rvRecv{x}}}
       \\
       \ftm{\gvClose{M}}
       & = & \rvSome{\rvClose{M}}

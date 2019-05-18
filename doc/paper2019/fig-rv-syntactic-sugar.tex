@@ -15,11 +15,11 @@
     {The \texttt{try!} macro}
     \[
       \begin{array}{lcl}
-        \rvTry{x}{M}{N} &::=& \rvTryDef{x}{M}{N}
+        \rvDo{x}{M}{N} &::=& \rvDoDef{x}{M}{N}
         \\
-        \rvTry{\rvUnit}{M}{N} &::=& \rvTryDef{x}{M}{\rvLetUnit{x}{N}}
+        \rvDo{\rvUnit}{M}{N} &::=& \rvDoDef{x}{M}{\rvLetUnit{x}{N}}
         \\
-        \rvTry{\rvPair{x}{y}}{M}{N} &::=& \rvTryDef{z}{M}{\rvLetPair{x}{y}{z}{N}}
+        \rvDo{\rvPair{x}{y}}{M}{N} &::=& \rvDoDef{z}{M}{\rvLetPair{x}{y}{z}{N}}
       \end{array}
     \]
   \end{highlight}\end{mdframed}

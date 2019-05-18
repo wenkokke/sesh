@@ -3,11 +3,13 @@
 \usetikzlibrary{cd}
 
 \usepackage{xspace}
-\newcommand*{\eg}{e.g.\@\xspace}
-\newcommand*{\ie}{i.e.\@\xspace}
-\newcommand*{\linearEGV}{\ensuremath{\text{EGV}_{\!L}}\xspace}
-\newcommand*{\affineEGV}{\ensuremath{\text{EGV}_{\!A}}\xspace}
-\newcommand*{\affineAGV}{\ensuremath{\text{AGV}_{\!A}}\xspace}
+\usepackage[all]{foreign}
+%\newcommand*{\eg}{e.g.\@\xspace}
+%\newcommand*{\ie}{i.e.\@\xspace}
+%\newcommand*{\etc}{etc.\@\xspace}
+\newcommand*{\linearEGV}{\ensuremath{\text{EGV}_{\!\text{L}}}\xspace}
+\newcommand*{\affineEGV}{\ensuremath{\text{EGV}_{\!\text{A}}}\xspace}
+\newcommand*{\affineAGV}{\ensuremath{\text{AGV}_{\!\text{A}}}\xspace}
 
 \usepackage{cmll}
 \usepackage{setspace}
@@ -49,12 +51,18 @@
 \parbox{0.5\textwidth}{#1}%
 \parbox{0.5\textwidth}{\raggedleft\boxed{#2}}}
 
-\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}_{A}}\tm{#1}}}
-\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}_{A}}\tm{#1}}}
+\newcommand{\lta}[1]{\ensuremath{\st{{\downarrow}_{\text{A}}}\tm{#1}}}
+\newcommand{\atl}[1]{\ensuremath{\st{{\uparrow}_{\text{A}}}\tm{#1}}}
 \newcommand{\atm}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{opt}}}\tm{#1}}}
+\newcommand{\atmTy}[2][]{\ensuremath{%
+    \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
+    \colorlet{tmp}{.}\color{stcolor}\right\rrbracket_{\!#1}\color{tmp}}}
 \newcommand{\atv}[1]{\ensuremath{\st{{\downarrow}_{\mathbf{val}}}\tm{#1}}}
 \newcommand{\mta}[1]{\ensuremath{\st{{\uparrow}_{\mathbf{opt}}}\tm{#1}}}
-
+\newcommand{\mtr}[1]{\ensuremath{\st{{\downarrow}_{\texttt{RV}}}\tm{#1}}}
+\newcommand{\mtrh}[2][]{\ensuremath{\st{{\downarrow}^{#1}_{\texttt{H}}}\tm{#2}}}
+\newcommand{\mtrc}[1]{\ensuremath{\st{{\downarrow}_{\texttt{C}}}\tm{#1}}}
+\newcommand{\rtm}[1]{\ensuremath{\st{{\uparrow}_{\texttt{RV}}}\tm{#1}}}
 
 \newcommand{\ftm}[2][]{\ensuremath{%
     \colorlet{tmp}{.}\color{stcolor}\left\llbracket\color{tmp}#2%
@@ -201,9 +209,9 @@
     \rvSome{#2}\;\st{$\Rightarrow$}\;\tm{#3}\st{,}\;%
     \rvNone{}\;\st{$\Rightarrow$}\;\tm{#4}\;\st{\}}}}
 
-\newcommand{\rvTry}[3]{\texttt{%
+\newcommand{\rvDo}[3]{\texttt{%
     \st{\textbf{let}}\;\tm{#1}\;\st{=}\;\tm{#2}\st{?;}\;\tm{#3}}}
-\newcommand{\rvTryDef}[3]{\rvCaseOpt{#2}{#1}{#3}{\rvNone}}
+\newcommand{\rvDoDef}[3]{\rvCaseOpt{#2}{#1}{#3}{\rvNone}}
 
 \newcommand{\rvFlagMain}[0]{\ensuremath{\st{\bullet}}}
 \newcommand{\rvFlagChild}[0]{\ensuremath{\st{\circ}}}
