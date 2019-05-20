@@ -7,7 +7,7 @@ use std::marker;
 use std::mem;
 use std::thread::{JoinHandle, spawn};
 use std::panic;
-use crossbeam_channel::{Sender, Receiver, bounded};
+use crossbeam_channel::{Sender, Receiver, bounded, Select};
 use either::Either;
 
 /// The session types supported.
@@ -71,17 +71,17 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 
 // Send and receive
 
-pub fn send<'a, T, S>(x: T, s: Send<T, S>) -> S
+pub fn send<T, S>(x: T, s: Send<T, S>) -> S
 where
-    T: marker::Send + 'a,
-    S: Session + 'a,
+    T: marker::Send,
+    S: Session,
 {
     let (here, there) = S::new();
     s.channel.send((x, there)).unwrap_or(());
     here
 }
 
-pub fn recv<'a, T, S>(s: Recv<T, S>) -> Result<(T, S), Box<Error + 'a>>
+pub fn recv<T, S>(s: Recv<T, S>) -> Result<(T, S), Box<Error>>
 where
     T: marker::Send,
     S: Session,
@@ -207,19 +207,44 @@ macro_rules! choose {
 
 // Selection
 
-// pub fn select<'a, T, S, I>(rs: &[Recv<T, S>]) -> Result<(T, S), Box<Error + 'a>>
-// where
-//     T: marker::Send + 'a,
-//     S: Session + 'a,
-// {
-//     let mut sel = Select::new();
-//     for r in rs {
-//         sel.recv(&r.channel);
-//     }
-//     loop {
-//         let oper = sel.select();
-//         let index = oper.index();
-//         let (x, s) = oper.recv(&rs[index].channel)?;
-//         break Ok((x, s));
-//     }
-// }
+pub fn select_mut<T, S, I>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<Error>>
+where
+    T: marker::Send,
+    S: Session,
+{
+    let (index, res) = {
+        let mut sel = Select::new();
+        let iter = rs.iter();
+        for r in iter {
+            sel.recv(&r.channel);
+        }
+        loop {
+            let index = sel.ready();
+            let res = rs[index].channel.try_recv();
+
+            if let Err(e) = res {
+                if e.is_empty() {
+                    continue;
+                }
+            }
+
+            break (index, res);
+        }
+    };
+
+    let _ = rs.swap_remove(index);
+    match res {
+        Ok(res) => Ok(res),
+        Err(e)  => Err(Box::new(e)),
+    }
+}
+
+pub fn select<T, S, I>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<Error>>, Vec<Recv<T, S>>)
+where
+    T: marker::Send,
+    S: Session,
+{
+    let mut rs = rs;
+    let res = select_mut::<T, S, I>(&mut rs);
+    (res, rs)
+}
