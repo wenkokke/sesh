@@ -3,6 +3,7 @@ extern crate either;
 
 use std::boxed::Box;
 use std::error::Error;
+use std::fmt;
 use std::marker;
 use std::mem;
 use std::thread::{JoinHandle, spawn};
@@ -207,44 +208,77 @@ macro_rules! choose {
 
 // Selection
 
-pub fn select_mut<T, S, I>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<Error>>
+#[derive(Debug)]
+enum SelectError {
+    EmptyVec,
+}
+
+impl fmt::Display for SelectError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SelectError::EmptyVec =>
+                write!(f, "please use a vector with at least one element"),
+        }
+    }
+}
+
+impl Error for SelectError {
+    fn description(&self) -> &str {
+        match *self {
+            SelectError::EmptyVec => "empty vectors not allowed",
+        }
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        match *self {
+            SelectError::EmptyVec => None,
+        }
+    }
+}
+
+pub fn select_mut<T, S>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<Error>>
 where
     T: marker::Send,
     S: Session,
 {
-    let (index, res) = {
-        let mut sel = Select::new();
-        let iter = rs.iter();
-        for r in iter {
-            sel.recv(&r.channel);
-        }
-        loop {
-            let index = sel.ready();
-            let res = rs[index].channel.try_recv();
-
-            if let Err(e) = res {
-                if e.is_empty() {
-                    continue;
-                }
+    if rs.is_empty() {
+        Err(Box::new(SelectError::EmptyVec))
+    }
+    else {
+        let (index, res) = {
+            let mut sel = Select::new();
+            let iter = rs.iter();
+            for r in iter {
+                sel.recv(&r.channel);
             }
+            loop {
+                let index = sel.ready();
+                let res = rs[index].channel.try_recv();
 
-            break (index, res);
+                if let Err(e) = res {
+                    if e.is_empty() {
+                        continue;
+                    }
+                }
+
+                break (index, res);
+            }
+        };
+
+        let _ = rs.swap_remove(index);
+        match res {
+            Ok(res) => Ok(res),
+            Err(e)  => Err(Box::new(e)),
         }
-    };
-
-    let _ = rs.swap_remove(index);
-    match res {
-        Ok(res) => Ok(res),
-        Err(e)  => Err(Box::new(e)),
     }
 }
 
-pub fn select<T, S, I>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<Error>>, Vec<Recv<T, S>>)
+pub fn select<T, S>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<Error>>, Vec<Recv<T, S>>)
 where
     T: marker::Send,
     S: Session,
 {
     let mut rs = rs;
-    let res = select_mut::<T, S, I>(&mut rs);
+    let res = select_mut(&mut rs);
     (res, rs)
 }

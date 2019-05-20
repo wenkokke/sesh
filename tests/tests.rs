@@ -8,6 +8,8 @@ use std::error::Error;
 use std::marker;
 use std::mem;
 use std::sync::mpsc;
+use std::thread::sleep;
+use std::time::Duration;
 
 
 // Test sending a ping across threads.
@@ -309,6 +311,44 @@ fn recursion_works() {
     }().is_ok());
 
     assert!(other_thread.join().is_ok());
+}
+
+// Test selection.
+
+#[test]
+fn selection_works() {
+
+    let mut other_threads = Vec::new();
+    let mut rs = Vec::new();
+
+    for i in 0..10 {
+        let (other_thread, s) = fork_with_thread_id(move |s: Send<u64, End>| {
+            sleep(Duration::from_millis(i * 10));
+            let s = send(i, s);
+            close(s)
+        });
+        other_threads.push(other_thread);
+        rs.push(s);
+    }
+
+    assert!(|| -> Result<(), Box<Error>> {
+        let mut current_index = 0;
+        loop {
+            if rs.is_empty() {
+                break Ok(());
+            }
+            else {
+                let (i, r) = select_mut(&mut rs)?;
+                close(r)?;
+                assert_eq!(current_index, i);
+                current_index += 1;
+            }
+        }
+    }().is_ok());
+
+    for other_thread in other_threads {
+        assert!(other_thread.join().is_ok())
+    }
 }
 
 
