@@ -1,4 +1,4 @@
-\documentclass[sigplan,screen,review]{acmart}
+\documentclass[sigplan,review,anonymous]{acmart}
 \title{Rusty Variation}
 \subtitle{Session Types with Failure for Rust}
 \author{Wen Kokke}
@@ -14,11 +14,19 @@
 }
 \email{wen.kokke@ed.ac.uk}
 \setcopyright{none}
-\settopmatter{printccs=false, printacmref=false, printfolios=false}
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{CONF} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 \input{preamble}
-\usepackage[nomarkers,nofiglist,figuresonly]{endfloat}
-\renewcommand{\efloatseparator}{}
+%\usepackage[nomarkers,nofiglist,figuresonly]{endfloat}
+%\renewcommand{\efloatseparator}{}
 
 \begin{document}
 \maketitle
@@ -334,6 +342,8 @@ On the left, \affineAGV and \affineEGV denote their respective well-typed terms.
 
 From the four operational correspondences we have obtained thus far, we can infer that \affineAGV is a faithful implementation of both \linearEGV and \affineEGV, which preserves their metatheory: it satisfies progress, is deadlock free, confluent, and terminating. However, as the operational correspondences along $\atm{}$ and $\mta{}$ are less strict, we cannot infer that reduction in \affineAGV preserves types at each reduction step, only that it eventually reaches a typeable term. This is not a problem, as preservation for \affineAGV is easily verified.
 
+\subsection{Linearised and Linear Channels}
+
 \subsection{Channels and Shared State}
 \affineAGV is incredibly similar to RV. Though they are styled differently, the type and term languages are identical:
 \begin{center}
@@ -414,14 +424,14 @@ The translation $\mtrh{}$ collects all buffers, translates them to heaps, and fi
       & (\rvHeap{H}', \sigma') = \mtrh{\gvConf{D}}
       \\
       \mtrh{\parens{\gvBuf{a}{\gvVecEmp}{b}{\gvVec{V}}}}
-      & = & \mtrh[a,b]{\gvVec{W}}
+      & = & \mtrh[a,b]{\gvVec{V}}
       \\
       \mtrh{\parens{\gvBuf{a}{\gvVec{V}}{b}{\gvVecEmp}}}
       & = & \mtrh[b,a]{\gvVec{V}}
     \end{array}
   \end{array}
 \]
-The translation $\mtrh[a,b]{}$ writes a queue to a heap, laying the values out in memory like a linked list (each entry storing the pointer to the next entry) starting at the location denoted by $\{a,b\}$ (each location in memory is referenced by two names):
+The translation $\mtrh[a,b]{}$ writes a queue to a heap, laying the values out in memory like a linked list (each entry storing the pointer to the next entry) starting at the location denoted by $\{a,b\}$ (each location in memory is referenced by two names). At the same time, $\mtrh[a,b]{}$ constructs a substitution $\sigma$, which we will discuss below:
 \[
   \begin{array}{lcl}
     \mtrh[a,b]{\gvVecEmp}
@@ -474,10 +484,12 @@ We have an operational correspondence between \affineAGV and RV along $\mtr{}$, 
 \]
 On the left, \affineAGV and RV denote their respective well-typed terms. This diagram commutes as the term syntax and typing of the two systems are identical, stylistic differences aside.
 On the right, \affineAGV and RV denote their respective well-typed configurations. This diagram commutes, though this is not obvious.
+There are two distinct things happening in $\mtr{}$. First, the translation from channel-based communication to shared state. Second, a translation from linearised channels (multiple values are sent over a single buffered channel) to linear channels (each channel )
 
 
 
 \bibliographystyle{ACM-reference-format}
+\citestyle{acmauthoryear}
 \bibliography{main}
 
 \end{document}

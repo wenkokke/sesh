@@ -89,15 +89,25 @@
           \rvRedArr
           \rvRedTup{\rvHeap{H}}{\rvPlug{F}{\rvSome{\rvUnit}}\st{,}\;\rvPlug{F'}{\rvSome{\rvUnit}}}$}
       \end{prooftree*}
-      
+           
       \begin{prooftree*}
         \AXC{
           $\tm{a}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$
           or
           $\tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
-        \RightLabel{\rlabel{\textsc{E-Zap}}{rule:rv-red-zap}}
+        \RightLabel{\rlabel{\textsc{E-ZapEmpty}}{rule:rv-red-zapempty}}
         \UIC{$
-          \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMem{M}}}{}
+          \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemEmp}}{}
+          \rvRedArr
+          \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}{b}}{}$}
+      \end{prooftree*}
+ 
+      \begin{prooftree*}
+        \AXC{
+          $\tm{a}\st{,}\;\tm{b}\notin\rvRedTup[\rvConf{C}]{\rvHeap{H}}{}$}
+        \RightLabel{\rlabel{\textsc{E-ZapData}}{rule:rv-red-zapdata}}
+        \UIC{$
+          \rvRedTup[\rvConf{C}]{\rvHeapData{\rvHeap{H}}{a}{b}{\rvMemData{U}{d}}}{}
           \rvRedArr
           \rvRedTup[\rvConf{C}]{\rvHeapDisc{\rvHeap{H}}{a}{b}}{}$}
       \end{prooftree*}
