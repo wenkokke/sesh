@@ -31,6 +31,25 @@ fn ping_works() {
 }
 
 
+/// Test writing a program which duplicates a session.
+///
+/// ```compile_fail
+/// assert!(|| -> Result<(), Box<Error>> {
+///
+///     let r1 = fork(move |s1: Send<(), End>| {
+///         let s2 = send((), s1);
+///         close(s2)?;
+///         let s3 = send((), s1);
+///         close(s3)?;
+///         Ok(())
+///     });
+///     let ((), r2) = recv(r1)?;
+///     close(r2)?;
+///     Ok(())
+///
+/// }().is_ok());
+/// ```
+
 // Test a simple calculator server, implemented using binary choice.
 
 type NegServer<N> = Recv<N, Send<N, End>>;
@@ -313,6 +332,7 @@ fn recursion_works() {
     assert!(other_thread.join().is_ok());
 }
 
+
 // Test selection.
 
 #[test]
@@ -323,8 +343,8 @@ fn selection_works() {
 
     for i in 0..10 {
         let (other_thread, s) = fork_with_thread_id(move |s: Send<u64, End>| {
-            sleep(Duration::from_millis(i * 10));
-            let s = send(i, s);
+            sleep(Duration::from_millis(i * 100));
+            let s = send(9 - i, s);
             close(s)
         });
         other_threads.push(other_thread);
@@ -332,7 +352,7 @@ fn selection_works() {
     }
 
     assert!(|| -> Result<(), Box<Error>> {
-        let mut current_index = 0;
+        let mut current_index = 9;
         loop {
             if rs.is_empty() {
                 break Ok(());
@@ -340,14 +360,15 @@ fn selection_works() {
             else {
                 let (i, r) = select_mut(&mut rs)?;
                 close(r)?;
-                assert_eq!(current_index, i);
-                current_index += 1;
+                assert_eq!(current_index, i, "Messages were received out of order.");
+                current_index = current_index.overflowing_sub(1).0; // decrement
             }
         }
-    }().is_ok());
+    }().is_ok(), "Main thread crashed.");
 
     for other_thread in other_threads {
-        assert!(other_thread.join().is_ok())
+        let msg = format!("Thread {:?} crashed.", other_thread);
+        assert!(other_thread.join().is_ok(), msg);
     }
 }
 

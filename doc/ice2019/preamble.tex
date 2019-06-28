@@ -1,0 +1,31 @@
+\usepackage{textcomp}
+\usepackage{doi}
+\usepackage[all]{foreign}
+
+% compact enums
+\usepackage{enumitem}
+\setlist[enumerate]{nosep}
+
+% red squiggly
+\usepackage{ulem}
+\normalem%
+\makeatletter
+\def\uwave{\bgroup \markoverwith{\lower3.5\p@\hbox{\sixly \textcolor{red}{\char58}}}\ULon}
+\font\sixly=lasy6 % does not re-load if already loaded, so no memory problem.
+\makeatother
+
+% load listings-rust
+% \usepackage{inconsolata}
+\usepackage{listings}
+\usepackage{listings-rust}
+\lstset{
+  language=Rust,
+  style=colouredRust,
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  xleftmargin=\parindent,
+  moredelim=[is][\uwave]{~}{~}
+}
+
+% load cleverref
+\usepackage{cleveref}

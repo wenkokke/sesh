@@ -1,4 +1,4 @@
-\documentclass[sigplan,review,anonymous]{acmart}
+\documentclass[acmsmall,review,anonymous]{acmart}
 \title{Rusty Variation}
 \subtitle{Session Types with Failure for Rust}
 \author{Wen Kokke}
@@ -25,8 +25,8 @@
 \settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 \input{preamble}
-%\usepackage[nomarkers,nofiglist,figuresonly]{endfloat}
-%\renewcommand{\efloatseparator}{}
+\usepackage[nomarkers,nofiglist,figuresonly]{endfloat}
+\renewcommand{\efloatseparator}{}
 
 \begin{document}
 \maketitle
@@ -53,7 +53,7 @@ EGV is a linear language, in the sense that it does not allow the implicit disca
 
 We make three changes to EGV (hence linear EGV or \linearEGV) to obtain affine EGV (\affineEGV):
 \begin{enumerate}
-\item 
+\item
   Remove the $\gvCancel{x}$ construct and the corresponding typing and reduction rules.
 \item
   Add a typing rule to allow implicit weakening:
@@ -63,18 +63,17 @@ We make three changes to EGV (hence linear EGV or \linearEGV) to obtain affine E
     \UIC{$\gvSeq{\ty{\Gamma}\st{,}\;\tmty{x}{B}}{M}{A}$}
   \end{prooftree}
 \item
-  Add a garbage collection reduction, where $\gvArc{\gvVar{a}}{\gvConf{C}}$ counts the number of occurrences of $\gvVar{a}$ in $\gvConf{C}$:
-  \begin{center}
-    \(
-    \rlabel{\textsc{E-Drop}}{rule:egv-red-drop}
+  Add a garbage collection reduction,
+  \[
+    \rlabel{\textsc{E-Disc}}{rule:egv-red-disc}
     \quad
     {\gvRes{a}{\gvConf{C}}}
     \gvRedArr
     {\gvRes{a}{\gvPPar{\gvZap{a}}{\gvConf{C}}}}
     \quad
     \text{if} \; \gvArc{\gvVar{a}}{\gvConf{C}} = 1
-    \)
-  \end{center}
+  \]
+  Where $\gvArc{\gvVar{a}}{\gvConf{C}}$ counts the number of occurrences of $\gvVar{a}$ in $\gvConf{C}$.
 \end{enumerate}
 We can translate programs in \linearEGV to \affineEGV by replacing all occurrences of $\gvCancel{x}$ with $\gvUnit$. We name this translation $\lta{}$. This translation preserves types, witnessed by the fact that \ref{rule:egv-ty-cancel} is derivable in affine EGV, with the translation of $\gvCancel{\!\!}$ as its term representation:%
 \begin{prooftree}
@@ -116,7 +115,7 @@ We have a strict operational correspondence between \linearEGV and \affineEGV al
   \end{tikzcd}
 \]
 On the left, \linearEGV and \affineEGV denote their respective well-typed terms. This diagram commutes as the term syntax and typing of the two systems are identical.
-On the right, \linearEGV and \affineEGV denote their respective well-typed configurations up to structural congruence. To show that this diagram commutes, we observe that each application of \ref{rule:egv-red-cancel} can be replaced with an application of \ref{rule:egv-red-drop} after the translation $\lta{}$ has been applied, and vice versa.
+On the right, \linearEGV and \affineEGV denote their respective well-typed configurations up to structural congruence. To show that this diagram commutes, we observe that each application of \ref{rule:egv-red-cancel} can be replaced with an application of \ref{rule:egv-red-disc} after the translation $\lta{}$ has been applied, and vice versa.
 
 In the other direction, we can translate programs in \affineEGV to \linearEGV. We name this translation $\atl{}$. This translation needs access to the typing environment of the program, as dropped names do not necessarily show up in the term. Therefore, we choose to define the translation $\atl{}$ on \emph{typing derivations}, by replacing each application of \ref{rule:egv-ty-weak} with a derived version:%
 \begin{prooftree}
@@ -176,40 +175,37 @@ We make four changes to \affineEGV to obtain \affineAGV:
   \\
   \begin{minipage}{1.0\linewidth}
     \[%
-      \begin{array}{l}%
-        \!\!\!%
-        \begin{array}{lcl}%
-          \gvTyOpt{A} &::=& \gvTySum{A}{\gvTyUnit}
-          \\
-          \gvSome{x} &::=& \gvInl{x}
-          \\
-          \gvNone &::=& \gvInr{\gvUnit}
-        \end{array}
+      \begin{array}{lcl}%
+        \gvTyOpt{A} &::=& \gvTySum{A}{\gvTyUnit}
         \\
-        \gvCaseOpt{L}{x}{M}{N} ::=
+        \gvSome{x} &::=& \gvInl{x}
         \\
-        \quad\gvCaseSum{L}{x}{M}{y}{\gvLetUnit{y}{N}}
+        \gvNone &::=& \gvInr{\gvUnit}
+        \\
+        \gvCaseOpt{L}{x}{M}{N} &::=& \gvCaseSum{L}{x}{M}{y}{\gvLetUnit{y}{N}}
       \end{array}
     \]
   \end{minipage}
 \item
-  Change term and configuration typing to reflect the possibility for failure, similar to RV~(\cref{fig:rv-static-typing}):
+  Change typing rules to reflect the possibility for failure, similar to RV~(\cref{fig:rv-static-typing}):
   \begin{center}
-    \begin{prooftree}
+    \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyFun{S}{\gvTyOpt{\gvTyUnit}}}$}
       \RightLabel{\rlabel{\textsc{T-Fork}}{rule:agv-ty-fork-err}}
       \UIC{$\gvSeq{\ty{\Gamma}}{\gvFork{M}}{\gvDual{S}}$}
-    \end{prooftree}    
-    \begin{prooftree}
+    \end{prooftree*}%
+    \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyEnd}$}
       \RightLabel{\rlabel{\textsc{T-Close}}{rule:agv-ty-close-err}}
       \UIC{$\gvSeq{\ty{\Gamma}}{\gvClose{M}}{\gvTyOpt{\gvUnit}}$}
-    \end{prooftree}
-    \begin{prooftree}
+    \end{prooftree*}
+  \end{center} 
+  \begin{center}
+    \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyRecv{A}{S}}$}
       \RightLabel{\rlabel{\textsc{T-Recv}}{rule:agv-ty-recv-err}}
       \UIC{$\gvSeq{\ty{\Gamma}}{\gvRecv{M}}{\gvTyOpt{\gvPair{A}{S}}}$}
-    \end{prooftree}
+    \end{prooftree*}%
     \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyOpt{A}}$}
       \RightLabel{\rlabel{\textsc{T-Main}}{rule:agv-ty-main}}
@@ -224,22 +220,22 @@ We make four changes to \affineEGV to obtain \affineAGV:
 \item
   Add reductions to deal with top-level values of the option type, similar to RV~(\cref{fig:rv-reduction}):
   \begin{center}
-    \begin{prooftree}
+    \begin{prooftree*}
       \AXC{}
       \RightLabel{\rlabel{\textsc{E-HaltChild}}{rule:agv-red-haltchild}}
       \UIC{$
         \gvPar{\gvConf{C}}{\gvChild{V}}
         \gvRedArr
         \gvConf{C}$}
-    \end{prooftree}%
-    \begin{prooftree}
+    \end{prooftree*}%
+    \begin{prooftree*}
       \AXC{}
       \RightLabel{\rlabel{\textsc{E-HaltMain}}{rule:agv-red-haltmain}}
       \UIC{$
         \gvMain{\gvNone}
         \gvRedArr
         \gvHalt$}
-    \end{prooftree}
+    \end{prooftree*}
   \end{center}
 \end{enumerate}
 We can translate programs in \affineEGV to \affineAGV following Filinski~\cite{filinski1994}. We name this translation $\atm{}$. The definition of $\atm{}$ is given in \cref{fig:affine-egv-to-agv}. This translation preserves typing, though it maps terms of type $\ty{A}$ to terms of type $\gvTyOpt{\atmTy{A}}$.
@@ -282,27 +278,19 @@ In the other direction, we can translate programs in \affineAGV to \affineEGV. W
   \begin{array}{lcl}
     \mta{\parens{\rvThread{\phi}{M}}}
     & = &
-    \\
-    \multicolumn{3}{l}{%
-    \quad\gvThread{\phi}{\parens{\gvCaseOpt{\mta{M}}{z}{z}{\gvRaise}}}}
+    \gvThread{\phi}{\parens{\gvCaseOpt{\mta{M}}{z}{z}{\gvRaise}}}
     \\
     \mta{\parens{\gvFork{M}}}
     & = &
-    \\
-    \multicolumn{3}{l}{%
-    \quad\gvFork{\parens{\gvAbs[S]{x}{\gvCaseOpt{\gvApp{\mta{M}}{x}}{z}{z}{\gvRaise}}}}}
+    \gvFork{\parens{\gvAbs[S]{x}{\gvCaseOpt{\gvApp{\mta{M}}{x}}{z}{z}{\gvRaise}}}}
     \\
     \mta{\parens{\gvClose{M}}}
     & = &
-    \\
-    \multicolumn{3}{l}{%
-    \quad\gvTry{\parens{\gvClose{\mta{M}}}}{z}{\parens{\gvSome{z}}}{\gvNone}}
+    \gvTry{\parens{\gvClose{\mta{M}}}}{z}{\parens{\gvSome{z}}}{\gvNone}
     \\
     \mta{\parens{\gvRecv{M}}}
     & = &
-    \\
-    \multicolumn{3}{l}{%
-    \quad\gvTry{\parens{\gvRecv{\mta{M}}}}{z}{\parens{\gvSome{z}}}{\gvNone}}
+    \gvTry{\parens{\gvRecv{\mta{M}}}}{z}{\parens{\gvSome{z}}}{\gvNone}
   \end{array}
 \]
 Essentially, this translation inserts machinery which bridges \affineEGV's exceptions to \affineAGV's monadic error handling. The first two cases unpack top-level options, raising an exception if $\gvNone$ is encountered. The last two cases catch exceptions as soon as they may arise, and reify them as options.
@@ -343,6 +331,42 @@ On the left, \affineAGV and \affineEGV denote their respective well-typed terms.
 From the four operational correspondences we have obtained thus far, we can infer that \affineAGV is a faithful implementation of both \linearEGV and \affineEGV, which preserves their metatheory: it satisfies progress, is deadlock free, confluent, and terminating. However, as the operational correspondences along $\atm{}$ and $\mta{}$ are less strict, we cannot infer that reduction in \affineAGV preserves types at each reduction step, only that it eventually reaches a typeable term. This is not a problem, as preservation for \affineAGV is easily verified.
 
 \subsection{Linearised and Linear Channels}
+\[
+  \begin{array}{lcl}
+    \mte[a,b]{\gvVecEmp}
+    & = & \gvPair
+          {\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}
+          {\varnothing}
+    \\
+    \mte[a,b]{\parens{\tm{U}\gvVecAdd\gvVec{V}}}
+    & = & \gvPair
+          {\gvPar{\gvBuf{a}{\gvVecEmp}{b}{\gvPair{U}{d}}}{\gvConf{C}}}
+          {\sigma\cup\{\tm{a}\mapsto\tm{c}\}}
+          \qquad
+          \text{where }(\gvConf{C},\sigma)=\mte[c,d]{\gvVec{V}}
+  \end{array}
+\]
+\[
+  \begin{array}{ll}
+    \rlabel{\textsc{E-Disc$_1$}}{rule:egv-red-disc1}
+    &
+      \gvRes{a}{\gvPPar{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}{\gvConf{C}}}
+      \gvRedArr
+      \gvRes{a}{\gvPPar{\gvZap{a}}{\gvPar{\gvBuf{a}{\gvVecEmp}{b}{\gvVecEmp}}{\gvConf{C}}}}
+      \qquad
+      \text{if }\tm{a}\notin\gvConf{C}
+    \\
+    \rlabel{\textsc{E-Disc$_2$}}{rule:egv-red-disc2}
+    &
+      \gvPar
+      {\gvBuf{a}{\gvVecEmp}{b}{\gvPair{U}{d}}}
+      {\gvPar{\gvZap{c}}{\gvBuf{c}{\gvVec{V}}{d}{\gvVec{W}}}}
+      \gvRedArr
+      \gvPar
+      {\gvPar{\gvZap{a}}{\gvBuf{a}{\gvVecEmp}{b}{\gvPair{U}{d}}}}
+      {\gvPar{\gvZap{c}}{\gvBuf{c}{\gvVec{V}}{d}{\gvVec{W}}}}
+  \end{array}
+\]
 
 \subsection{Channels and Shared State}
 \affineAGV is incredibly similar to RV. Though they are styled differently, the type and term languages are identical:
@@ -403,7 +427,7 @@ The translation $\mtrh{}$ collects all buffers, translates them to heaps, and fi
   \begin{array}{c}
     \begin{array}{lcl}
       \mtrh{\parens{\gvThread{\phi}{M}}}
-      & = & (\varnothing, \varnothing) 
+      & = & (\varnothing, \varnothing)
       \\
       \mtrh{\gvHalt}
       & = & (\varnothing, \varnothing)
@@ -449,7 +473,7 @@ The translation $\mtrh[a,b]{}$ writes a queue to a heap, laying the values out i
     \\ && \text{if }\tm{a}\in\zeta\text{ or }\tm{b}\in\zeta
   \end{array}
 \]
-Finally, the substitution $\sigma$: while EGV reuses the same channel throughout a session, in RV, pointers to the heap are single-use (each send operation stores its payload on the heap together with a fresh pointer to an empty location on the heap, and returns the other pointer to that location). 
+Finally, the substitution $\sigma$: while EGV reuses the same channel throughout a session, in RV, pointers to the heap are single-use (each send operation stores its payload on the heap together with a fresh pointer to an empty location on the heap, and returns the other pointer to that location).
 When we translate configurations, we unroll the queues onto the heap. A session may have already performed several send operations, but the translation of the session channel points to the start of the linked list. The substitution $\sigma$, which we construct simultaneously with the heap, addresses this.
 
 We have an operational correspondence between \affineAGV and RV along $\mtr{}$, \ie the following diagrams commute:

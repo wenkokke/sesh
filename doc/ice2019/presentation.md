@@ -6,9 +6,104 @@
 
 by Wen Kokke
 
+^
+This is a library talk, about a Rust library I created.
+
+
 ---
 
-# [fit] A Tale of Four Examples
+# [fit] Why Session Types in Rust?
+
+---
+
+# The Ping Protocol
+
+```rust
+    fn send_ping(s1: Send<(), End>) 
+            -> Result<(), Box<Error>> {
+
+        let s2 = send((), s1)?;
+        close(s2)
+
+
+
+
+    }
+```
+
+---
+
+# The Ping Protocol — Re-use
+
+```rust
+    fn send_ping(s1: Send<(), End>) 
+            -> Result<(), Box<Error>> {
+      
+        let s2 = send((), s1)?;
+        close(s2)?;
+  
+        let s3 = send((), s1)?; // reuse `s1`
+        close(s3)
+          
+    }
+```
+
+^
+Rust is affine. 
+It is very good at catching this.
+
+---
+
+# The Ping Protocol — Dropping
+
+```rust
+    fn send_ping(s1: Send<(), End>) 
+            -> Result<(), Box<Error>> {
+
+
+        // this function body
+        // unintentionally left blank.
+
+
+        Ok(())
+    }
+```
+
+^
+Rust is affine. It doesn't catch this.
+
+^
+We're going to have to handle this situation.  Fortunately, there is a lot to be said for doing this anyway.  Imagine your internet connection dies!  Or if your process panics!  From the perspective of your communication partner, that's the same thing as forgetting to finish the protocol.
+
+---
+
+# The Ping Protocol — A Long Wait
+
+```rust
+        let (s1, r1) = Send<Void, End>::new();
+        let (s2, r2) = Send<Void, End>::new();
+        std::thread::spawn(move || {
+            let (v, r1) = recv(r1)?;
+            close(r1)?;
+            let s2 = send(v, s2);
+            close(s2)
+        });
+        let (v, r2) = recv(r2)?;
+        close(r2)?;
+        let s1 = send(v, s1);
+        close(s1)
+```
+
+^
+Finally, this is another situation we want to avoid.
+
+^
+Deadlocks.
+
+---
+
+# [fit] A Tale of Two Languages
+# [fit] In Four Examples
 
 ---
 
@@ -29,6 +124,15 @@ $$
 \end{array}
 $$
 
+^
+Exceptional GV is a formal language, with close ties to logic.
+
+^
+It has strong formal properties. Progress, preservation, confluence, deadlock freedom.
+
+^
+It is an affine language. It matches well with Rust.
+
 ---
 
 # Rusty Variation
@@ -45,6 +149,15 @@ Looks like this:
         let ((), s) = recv(s)?;
         close(s)
 ```
+
+^
+Rusty Variation is a Rust library. It is a faithful implementation of EGV.
+
+^
+Most of this talk is going to be spent convincing you they're basically the same thing.
+
+^
+Why? If they are, RV has the same strong properties.
 
 ---
 
@@ -320,7 +433,7 @@ What about our Rust program?
 
 # Rusty Variation
 
-[.code-highlight: 1-4]
+[.code-highlight: 1-5]
 ```rust
         let s = fork!(move |s: Send<(), End>| {
             let s = send((), s)?;
@@ -337,7 +450,7 @@ The fork marcro is elaborated.
 
 # Rusty Variation
 
-[.code-highlight: 1-12]
+[.code-highlight: 1-13]
 ```rust
         let (s, here) = <Send<(), End> as Session>::new();
         std::thread::spawn(move || {
@@ -363,7 +476,7 @@ Let me do some alpha renaming.
 
 # Rusty Variation
 
-[.code-highlight: 1-11]
+[.code-highlight: 1-12]
 ```rust
         let (b, a) = <Send<(), End> as Session>::new();
         std::thread::spawn(move || {
@@ -759,8 +872,7 @@ What about the Rust library?
             Ok(())
         });
         let ((), s) = recv(s)?;
-        close(s);
-        Ok(())
+        close(s)
 ```
 
 ---
@@ -772,6 +884,8 @@ For that, let's look at how `cancel` is implemented:
 
 ```rust
     fn cancel<T>(x: T) -> () {
+        // this function body
+        // intentionally left blank.
     }
 ```
 
@@ -804,21 +918,17 @@ What happens when a channel `x` leaves scope unused?
 
 # What are the differences?
 
+- **explicit cancellation** vs. **implicit cancellation**
+
+  (what happens if we forget to complete a session?)
+
 - **try/catch** vs. **error monad**
 
   (using the "$$\mathbf{try} \, L \, \mathbf{as} \, x \, \mathbf{in} \, N \, \mathbf{otherwise} \, M$$" instruction)
 
-- **explicit close** vs. **implicit close** 
+- **channel** vs. **shared memory**
 
-```rust
-  fn close(s: End) -> Result<(), Box<Error>> {
-      Ok(()) // `End` doesn't have a buffer
-  }
-```
-
-- **explicit cancellation** vs. **implicit cancellation**
-
-  (what happens if we forget to complete a session?)
+  (process calculus vs. heap-based semantics)
 
 ---
 
@@ -850,8 +960,7 @@ What happens when a channel `x` leaves scope unused?
         Ok(())
     });
     let ((), s) = recv(s)?;
-    close(s);
-    Ok(())
+    close(s)
 ```
 
 - by storing channels in manually managed memory 
@@ -911,19 +1020,6 @@ What happens when a channel `x` leaves scope unused?
 
 ---
 
-# Testing Rusty Variation 
-
-Plan:
-
-`(x)` use Feat/Neat[^1] to generate EGV terms 
-`( )` run terms in EGV
-`( )` run terms in Rust
-`( )` test if they behave the same
-
-[^1]: Generating constrained random data with uniform distribution, Claessen, Duregård, & Pałka, 2015
-
----
-
 # How efficient is Rusty Variation?
 
 - buffers are either empty or non-empty
@@ -961,6 +1057,40 @@ Plan:
 - **forget to complete a session? segfault!**
 
 [^2]: Linear  type  theory  for asynchronous session types, Gay & Vasconcelos, 2010
+
+---
+
+# The Ping Protocol — Dropping
+
+```rust
+    fn send_ping(s1: Send<(), End>) 
+            -> Result<(), Box<Error>> {
+
+
+        // this function body
+        // unintentionally left blank.
+
+
+        Ok(())
+    }
+```
+
+---
+
+# The Ping Protocol — Dropping
+
+```rust
+    fn recv_ping(s1: Recv<(), End>) 
+            -> Result<(), Box<Error>> {
+
+
+        // this function body
+        // unintentionally left blank.
+
+
+        Ok(())
+    }
+```
 
 ---
 

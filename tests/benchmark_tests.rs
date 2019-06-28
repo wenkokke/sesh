@@ -85,6 +85,46 @@ mod session_types_bench {
     use test::Bencher;
     use session_types::*;
 
+    mod secret {
+
+        use session_types::*;
+
+        type AddSrv  = Recv<i32, Recv<i32, Send<i32, Eps>>>;
+        type SubSrv  = Recv<i32, Recv<i32, Send<i32, Eps>>>;
+        type CalcSrv = Offer<AddSrv, SubSrv>;
+
+        fn server(c: Chan<(), CalcSrv>) {
+            offer!{c,
+                   SUB => {
+                       let (c, n) = c.recv();
+                       let (c, m) = c.recv();
+                       let c = c.send(n - m);
+                       c.close();
+                   },
+                   ADD => {
+                       let (c, n) = c.recv();
+                       let (c, m) = c.recv();
+                       let c = c.send(n + m);
+                       c.close();
+                   }
+            }
+        }
+
+        type AddCli  = Send<i32, Send<i32, Recv<i32, Eps>>>;
+        type SubCli  = Send<i32, Send<i32, Recv<i32, Eps>>>;
+        type CalcCli = Choose<AddCli, SubCli>;
+
+        fn client(c: Chan<(), CalcCli>) {
+            let c = c.sel1();
+            let c = c.send(42);
+            let c = c.send(1);
+            let (c, n) = c.recv();
+            println!("{}", n);
+            c.close();
+        }
+    }
+
+
     // Calculator server
 
     type CalcSrv =
