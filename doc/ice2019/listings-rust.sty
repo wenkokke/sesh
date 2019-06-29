@@ -20,11 +20,17 @@
 % [4] type and value constructors
 % [5] identifier
 %
-, morekeywords=[1]{pub, fn, type, enum, let, move, where, match, ident, ty, block, pat, expr, struct, trait, impl, macro_rules!} 
+, morekeywords={break, continue, else, for, if, in, loop, match, return, while}
+, morekeywords={as, const, let, move, mut, ref, static}
+, morekeywords={dyn, enum, fn, impl, Self, self, struct, trait, type, union, use, where}
+, morekeywords={crate, extern, mod, pub, super}
+, morekeywords={unsafe}
+, morekeywords={abstract, alignof, become, box, do, final, macro, offsetof, override, priv, proc, pure, sizeof, typeof, unsized, virtual, yield}
 , morekeywords=[2]{Error, Session, FnOnce, Drop}
-, morekeywords=[3]{i32}
-, morekeywords=[4]{Vec, Select, Result, Ok, Err, Option, Some, None, Send, Recv, End, Neg, Sqr, Add, Sub, Box, Dual, Self, Either, Void, Chan, Eps, Choose, Offer}
-, morekeywords=[5]{println!, assert!, assert_eq!, choose!, offer!, fork!, choose, offer, fork, panic!, send, recv, close, cancel, connect, client, server, select, select_mut, main, spawn, drop, new, cancel, channel, choose_left, choose_right, offer_either, is_empty, push}
+, morekeywords=[3]{bool, char, f32, f64, i8, i16, i32, i64, isize, str, u8, u16, u32, u64, unit, usize, i128, u128}
+, morekeywords=[4]{Vec, Select, Result, Ok, Err, Option, Some, None, Send, Recv, End, Neg, Sqr, Add, Sub, Box, Dual, Self, Either, Left, Right, Void, Chan, Eps, Choose, Offer, Sender, Receiver, Rec, Var, Z, NegSrv, SqrSrv, NegCli, SqrCli, IntStream, CalcSrv, CalcCli, CalcOp}
+, morekeywords=[5]{mpsc_select!, println!, assert!, assert_eq!, choose!, offer!, fork!, panic!}
+%, morekeywords=[6]{choose, offer, fork, send, recv, close, cancel, connect, client, server, select, select_mut, main, spawn, drop, new, cancel, channel, choose_left, choose_right, offer_either, is_empty, push, try_select, select_timeout, try_ready, ready, ready_timeout, forget}
 }
 
 \lstdefinestyle{colouredRust}%
@@ -37,25 +43,10 @@
 , keywordstyle=[3]\color[rgb]{0, 0.5, 0}% primitive types
 , keywordstyle=[4]\color[rgb]{0, 0.5, 0}% type and value constructors
 , keywordstyle=[5]\color[rgb]{0, 0, 0.75}% macros
+%, keywordstyle=[6]\color[rgb]{0, 0, 0.75}% functions
 , columns=spaceflexible%
 , keepspaces=true%
 , showspaces=false%
 , showtabs=false%
 , showstringspaces=true%
 }%
-
-\lstdefinestyle{boxed}{
-  style=colouredRust%
-, numbers=left%
-, firstnumber=auto%
-, numberblanklines=true%
-, frame=trbL%
-, numberstyle=\tiny%
-, frame=leftline%
-, numbersep=7pt%
-, framesep=5pt%
-, framerule=10pt%
-, xleftmargin=15pt%
-, backgroundcolor=\color[gray]{0.97}%
-, rulecolor=\color[gray]{0.90}%
-}
