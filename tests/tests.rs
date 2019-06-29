@@ -16,7 +16,7 @@ use std::time::Duration;
 
 #[test]
 fn ping_works() {
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         let s = fork(move |s: Send<(), End>| {
             let s = send((), s);
@@ -34,7 +34,7 @@ fn ping_works() {
 /// Test writing a program which duplicates a session.
 ///
 /// ```compile_fail
-/// assert!(|| -> Result<(), Box<Error>> {
+/// assert!(|| -> Result<(), Box<dyn Error>> {
 ///
 ///     let r1 = fork(move |s1: Send<(), End>| {
 ///         let s2 = send((), s1);
@@ -61,7 +61,7 @@ type AddClient<N> = <AddServer<N> as Session>::Dual;
 type SimpleCalcServer<N> = Offer<NegServer<N>, AddServer<N>>;
 type SimpleCalcClient<N> = <SimpleCalcServer<N> as Session>::Dual;
 
-fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
+fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<dyn Error>> {
     offer_either(s,
                  |s: NegServer<i32>| {
                      let (x, s) = recv(s)?;
@@ -80,7 +80,7 @@ fn simple_calc_server(s: SimpleCalcServer<i32>) -> Result<(), Box<Error>> {
 
 #[test]
 fn simple_calc_works() {
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         let mut rng = thread_rng();
 
@@ -123,7 +123,7 @@ enum CalcOp<N: marker::Send> {
 type NiceCalcServer<N> = Recv<CalcOp<N>, End>;
 type NiceCalcClient<N> = <NiceCalcServer<N> as Session>::Dual;
 
-fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
+fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<dyn Error>> {
     offer!(s, {
         CalcOp::Neg(s) => {
             let (x, s) = recv(s)?;
@@ -143,7 +143,7 @@ fn nice_calc_server(s: NiceCalcServer<i32>) -> Result<(), Box<Error>> {
 
 #[test]
 fn nice_calc_works() {
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         // Pick some random numbers.
         let mut rng = thread_rng();
@@ -184,7 +184,7 @@ fn cancel_recv_works() {
 
     let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         cancel(s);
         Ok(())
@@ -203,7 +203,7 @@ fn cancel_send_works() {
             Ok(())
         });
 
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         let s = send((), s);
         close(s)?;
@@ -226,7 +226,7 @@ fn delegation_works() {
             Ok(())
     });
 
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         let u = send(s, u);
         close(u)?;
@@ -245,10 +245,10 @@ fn delegation_works() {
 fn closure_works() {
     let (other_thread, s) = fork_with_thread_id(nice_calc_server);
 
-    assert!(|| -> Result<i32, Box<Error>> {
+    assert!(|| -> Result<i32, Box<dyn Error>> {
 
         // Create a closure which uses the session.
-        let f = move |x: i32| -> Result<i32, Box<Error>> {
+        let f = move |x: i32| -> Result<i32, Box<dyn Error>> {
             let s = choose!(CalcOp::Neg, s);
             let s = send(x, s);
             let (y, s) = recv(s)?;
@@ -275,11 +275,11 @@ enum SumOp<N: marker::Send> {
 type NiceSumServer<N> = Recv<SumOp<N>, End>;
 type NiceSumClient<N> = <NiceSumServer<N> as Session>::Dual;
 
-fn nice_sum_server(s: NiceSumServer<i32>) -> Result<(), Box<Error>> {
+fn nice_sum_server(s: NiceSumServer<i32>) -> Result<(), Box<dyn Error>> {
     nice_sum_server_accum(s, 0)
 }
 
-fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>> {
+fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<dyn Error>> {
     offer!(s, {
         SumOp::More(s) => {
             let (y, s) = recv(s)?;
@@ -295,7 +295,7 @@ fn nice_sum_server_accum(s: NiceSumServer<i32>, x: i32) -> Result<(), Box<Error>
 }
 
 fn nice_sum_client_accum(s: NiceSumClient<i32>, mut xs: Vec<i32>)
-                         -> Result<i32, Box<Error>> {
+                         -> Result<i32, Box<dyn Error>> {
     match xs.pop() {
         Option::Some(x) => {
             let s = choose!(SumOp::More, s);
@@ -321,7 +321,7 @@ fn recursion_works() {
 
     let (other_thread, s) = fork_with_thread_id(nice_sum_server);
 
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
 
         let sum2 = nice_sum_client_accum(s, xs)?;
         assert_eq!(sum1, sum2);
@@ -351,7 +351,7 @@ fn selection_works() {
         rs.push(s);
     }
 
-    assert!(|| -> Result<(), Box<Error>> {
+    assert!(|| -> Result<(), Box<dyn Error>> {
         let mut current_index = 9;
         loop {
             if rs.is_empty() {
@@ -386,7 +386,7 @@ fn deadlock_loop() {
         Ok(())
     });
 
-    || -> Result<(), Box<Error>> {
+    || -> Result<(), Box<dyn Error>> {
         let ((), s) = recv(s)?;
         close(s)?;
         Ok(())
@@ -402,7 +402,7 @@ fn deadlock_forget() {
         Ok(())
     });
 
-    || -> Result<(), Box<Error>> {
+    || -> Result<(), Box<dyn Error>> {
         let ((), s) = recv(s)?;
         close(s)?;
         Ok(())
@@ -422,7 +422,7 @@ fn deadlock_new() {
         Ok(())
     });
 
-    || -> Result<(), Box<Error>> {
+    || -> Result<(), Box<dyn Error>> {
         let (x, r2) = recv(r2)?;
         let s1 = send(x, s1);
         close(r2)?;

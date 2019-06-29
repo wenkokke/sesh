@@ -5,62 +5,68 @@
 A library for deadlock-free session-typed communication in Rust.
 
 ```rust
-#[macro_use]
+extern crate rand;
 extern crate rusty_variation;
 
+use rand::{Rng, thread_rng};
+use rusty_variation::*;
 use std::boxed::Box;
 use std::error::Error;
-use rusty_variation::*;
+
+type NegSrv = Recv<i64, Send<i64, End>>;
+type AddSrv = Recv<i64, Recv<i64, Send<i64, End>>>;
+enum CalcOp { Neg(NegSrv), Add(AddSrv) }
 
 type CalcSrv = Recv<CalcOp, End>;
-enum CalcOp {
-    Done(End),
-    Neg(Recv<i32, Send<i32, CalcSrv>>),
-    Add(Recv<i32, Recv<i32, Send<i32, CalcSrv>>>)}
+type CalcCli = <CalcSrv as Session>::Dual;
 
-fn calc_server(s: CalcSrv) -> Result<(), Box<Error>> {
+fn server(s: CalcSrv) -> Result<(), Box<dyn Error>> {
     offer!(s, {
-        CalcOp::Done(s) => {
-            close(s)
-        },
         CalcOp::Neg(s) => {
             let (x, s) = recv(s)?;
-            let s = send(-x, s)?;
-            calc_server(s)
+            let s = send(-x, s);
+            close(s)?;
+            Ok(())
         },
         CalcOp::Add(s) => {
             let (x, s) = recv(s)?;
             let (y, s) = recv(s)?;
-            let s = send(x.wrapping_add(y), s)?;
-            calc_server(s)
+            let s = send(x.wrapping_add(y), s);
+            close(s)?;
+            Ok(())
         },
     })
 }
 
-fn main() {
-    assert!(|| -> Result<(), Box<Error>> {
+#[test]
+fn calc_srv_works() {
+    assert!(|| -> Result<(), Box<dyn Error>> {
+
+        // Pick some random numbers.
+        let mut rng = thread_rng();
 
         // Test the negation function.
         {
-            let s: <CalcSrv as Session>::Dual = fork!(calc_server);
-            let s = select!(CalcOp::Neg, s)?;
-            let s = send(6, s)?;
+            let s: CalcCli = fork(server);
+            let x: i64 = rng.gen();
+            let s = choose!(CalcOp::Neg, s);
+            let s = send(x, s);
             let (y, s) = recv(s)?;
-            let s = select!(CalcOp::Done, s)?;
             close(s)?;
-            assert_eq!(-6, y);
+            assert_eq!(-x, y);
         }
 
         // Test the addition function.
         {
-            let s: <CalcSrv as Session>::Dual = fork!(calc_server);
-            let s = select!(CalcOp::Add, s)?;
-            let s = send(4, s)?;
-            let s = send(5, s)?;
+            let s: CalcCli = fork(server);
+            let x: i64 = rng.gen();
+            let y: i64 = rng.gen();
+            let s = choose!(CalcOp::Add, s);
+            let s = send(x, s);
+            let s = send(y, s);
             let (z, s) = recv(s)?;
-            let s = select!(CalcOp::Done, s)?;
             close(s)?;
-            assert_eq!(9, z);
+            assert_eq!(x.wrapping_add(y), z);
         }
 
         Ok(())

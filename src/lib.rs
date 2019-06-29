@@ -82,7 +82,7 @@ where
     here
 }
 
-pub fn recv<T, S>(s: Recv<T, S>) -> Result<(T, S), Box<Error>>
+pub fn recv<T, S>(s: Recv<T, S>) -> Result<(T, S), Box<dyn Error>>
 where
     T: marker::Send,
     S: Session,
@@ -99,7 +99,7 @@ pub fn cancel<T>(x: T) -> () {
     mem::drop(x);
 }
 
-pub fn close(s: End) -> Result<(), Box<Error>> {
+pub fn close(s: End) -> Result<(), Box<dyn Error>> {
     s.sender.send(()).unwrap_or(());
     s.receiver.recv()?;
     Ok(())
@@ -111,7 +111,7 @@ pub fn close(s: End) -> Result<(), Box<Error>> {
 pub fn fork_with_thread_id<S, P>(p: P) -> (JoinHandle<()>, S::Dual)
 where
     S: Session + 'static,
-    P: FnOnce(S) -> Result<(), Box<Error>> + marker::Send + 'static
+    P: FnOnce(S) -> Result<(), Box<dyn Error>> + marker::Send + 'static
 {
     let (there, here) = Session::new();
     let other_thread = spawn(move || {
@@ -129,7 +129,7 @@ where
 pub fn fork<S, P>(p: P) -> S::Dual
 where
     S: Session + 'static,
-    P: FnOnce(S) -> Result<(), Box<Error>> + marker::Send + 'static
+    P: FnOnce(S) -> Result<(), Box<dyn Error>> + marker::Send + 'static
 {
     fork_with_thread_id(p).1
 }
@@ -143,12 +143,12 @@ pub type Choose<S1, S2> =
     Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
 pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
-                                         -> Result<R, Box<Error + 'a>>
+                                         -> Result<R, Box<dyn Error + 'a>>
 where
     S1: Session,
     S2: Session,
-    F: FnOnce(S1) -> Result<R, Box<Error + 'a>>,
-    G: FnOnce(S2) -> Result<R, Box<Error + 'a>>,
+    F: FnOnce(S1) -> Result<R, Box<dyn Error + 'a>>,
+    G: FnOnce(S2) -> Result<R, Box<dyn Error + 'a>>,
 {
     let (e, s) = recv(s)?;
     cancel(s);
@@ -229,14 +229,14 @@ impl Error for SelectError {
         }
     }
 
-    fn cause(&self) -> Option<&Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         match *self {
             SelectError::EmptyVec => None,
         }
     }
 }
 
-pub fn select_mut<T, S>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<Error>>
+pub fn select_mut<T, S>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<dyn Error>>
 where
     T: marker::Send,
     S: Session,
@@ -273,7 +273,7 @@ where
     }
 }
 
-pub fn select<T, S>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<Error>>, Vec<Recv<T, S>>)
+pub fn select<T, S>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<dyn Error>>, Vec<Recv<T, S>>)
 where
     T: marker::Send,
     S: Session,
