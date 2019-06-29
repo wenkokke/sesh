@@ -121,6 +121,7 @@ let ((), s) = recv(s)?;
 close(s)
 \end{lstlisting}
 \end{minipage}
+\vspace{-0.25\baselineskip}
 
 \noindent
 Rust is an affine language, meaning that any value can be used \emph{at most once}. Hence, our first example doesn't compile: Rust complains about the second usage of \lstinline{s}, which attempts to use \lstinline{s} after transferring ownership of the value to \lstinline{send}.
@@ -147,6 +148,7 @@ let _s = fork(move |_s: End| {
 // intentionally left blank.
 \end{lstlisting}
 \end{minipage}
+\vspace{-0.25\baselineskip}
 
 \noindent
 To mimic the cancellation behaviour in EGV, we count the number of references to a session, starting at \emph{two} when a session is created using \lstinline{new}. Each time a session's destructor is called, we decrement this counter. If the counter is \emph{one}, the session is marked as \emph{disconnected}. Sending on a disconnected session drops the value being sent. Receiving on or closing disconnected sessions returns an error, \ie \lstinline{None}. This ensures that no process is left waiting for a message that will never come. If the counter reaches \emph{zero}, the memory for the session is deallocated.
@@ -180,8 +182,8 @@ let s = fork(move |s: Send<(), End>| {
 let (z, s) = recv(s)?;
 close(s)
 \end{lstlisting}
-\end{minipage}%
-
+\end{minipage}
+\vspace{-0.25\baselineskip}
 
 \subsection{Branching with offer! and choose!}\label{sec:choice}
 The \lstinline{choose_left}, \lstinline{choose_right}, and \lstinline{offer_either} functions let processes offer or make a \emph{binary} choice. These are \emph{derived} constructs~\cite{honda1993,dardha2017}. They are implemented using only the functions in our library---\lstinline{new}, \lstinline{send}, \lstinline{recv}, \lstinline{close}, and \lstinline{cancel}---and the sum type \lstinline{Either}. They send or receive a value of the type \lstinline{Either<S1, S2>}, where \lstinline{S1} and \lstinline{S2} are the possible continuations of the session.
@@ -252,6 +254,7 @@ fn main() {
 }
 \end{lstlisting}
 \end{minipage}
+\vspace{-0.25\baselineskip}
 
 \subsection{Homogeneous Selection}\label{sec:selection}
 Selection is a mechanism which allows processes to block on a list of actions, waiting until the first of them fires. Writing programs which use selection can be tricky and error prone, even using libraries specifically built to help with selection. For instance, the following is an excerpt from the documentation of \lstinline{crossbeam_channel::Select}\footnote{\url{https://docs.rs/crossbeam-channel/0.3.8/crossbeam_channel/struct.Select.html}}, a construct which implements a selection mechanism:
@@ -284,7 +287,7 @@ for i in 0..10 {
   rs.push(s);
 }
 \end{lstlisting}
-\end{minipage}
+\end{minipage}%
 \begin{minipage}[t]{0.5\linewidth}
 \begin{lstlisting}
 loop {
@@ -297,6 +300,7 @@ loop {
 }
 \end{lstlisting}
 \end{minipage}
+\vspace{-0.25\baselineskip}
 
 The \lstinline{select_mut} and \lstinline{select} functions are homogeneous: they only select over vectors of endpoints with \emph{the same type}. This rules out heterogeneous uses of selection, where the operations are of different types. Selection is not a part of EGV, and hence our strong correctness guarantees do not extend to selection.
 
@@ -383,11 +387,12 @@ let s1 = send(v, s1);
 close(s1)
 \end{lstlisting}
 \end{minipage}
+\vspace{-0.25\baselineskip}
 
 \section{Related Work}\label{sec:related-work}
 Laumann \etal~\cite{jespersen2015} implement session types in Rust, based on the session-typed functional language LAST by Gay and Vasconcelos~\cite{gay2009}. Their implementation guarantees session fidelity, albeit with some caveats. LAST is a linear language, meaning that sessions can neither be duplicated nor dropped. As we discussed in~\cref{sec:cancellation}, Rust is an affine language, meaning that values---and, particularly relevant here, sessions---can be dropped. The implementation of LAST in Rust, therefore, guarantees session fidelity under the assumption that channels are \emph{never dropped}.
 
-Laumann \etal~\cite{jespersen2015} remark that they ``cannot prevent a channel value from being dropped prematurely''. They offer several solutions, but remark that each of these solutions are either insufficient, premature, or both. They note that the proposal to add linear types to Rust is currently postponed\footnote{\url{https://github.com/rust-lang/rfcs/pull/776}}, and that while \lstinline{#[must_use]} can be made to issue a warning if a value is dropped, it is ``easy to accidentally and purposely bypass''. Finally, they propose a compiler extension, developed in collaboration with Manish Goregaokar, \lstinline{humpty_dumpty}\footnote{\url{https://github.com/Manishearth/humpty_dumpty}}, ``which provides a lint that ensures that types annotated  with \lstinline{#[drop_protect]} are used linearly''. However, they note that \lstinline{humpty_dumpty} ``is still a work in progress, which by no means guarantees linearity in all cases''. No further work has been done on \lstinline{humpty_dumpty} since 2015. The current version of the library enforces linearity \emph{dynamically}, using ``destructor bombs'', implemented by Manish Goregaokar\footnote{\url{https://github.com/Munksgaard/session-types/commit/0f25ccb7c3bc9f65fa8eaf538233e8fe344a189a}}. This technique hides a \lstinline{panic!} in channel destructors. Each invocation of \lstinline{close} then calls \lstinline{std::mem::forget}, bypassing the destructor bomb.
+Laumann \etal~\cite{jespersen2015} remark that they ``cannot prevent a channel value from being dropped prematurely''. They offer several solutions, but remark that each of these solutions are either insufficient, premature, or both. They note that the proposal to add linear types to Rust is currently postponed\footnote{\url{https://github.com/rust-lang/rfcs/pull/776}}, and that while \lstinline{#[must_use]} can be made to issue a warning if a value is dropped, it is ``easy to accidentally and purposely bypass''. Finally, they propose a compiler extension, developed in collaboration with Manish Goregaokar, \lstinline{humpty_dumpty}\footnote{\url{https://github.com/Manishearth/humpty_dumpty}}, ``which provides a lint that ensures that types annotated  with \lstinline{#[drop_protect]} are used linearly''. However, they note that \lstinline{humpty_dumpty} ``is still a work in progress, which by no means guarantees linearity in all cases''. No further work has been done on \lstinline{humpty_dumpty} since 2015. The current version of the library enforces linearity \emph{dynamically}, using ``destructor bombs'', implemented by Manish Goregaokar\footnote{\url{https://github.com/Munksgaard/session-types/commit/0f25ccb7c3bc9f65fa8eaf538233e8fe344a189a}}. This technique hides a \lstinline{panic!} in channel destructors, which crashes the program if the destructor ever runs. Each invocation of \lstinline{close} then calls \lstinline{std::mem::forget}, bypassing the destructor bomb.
 
 We argue that even if Rust were able to enforce linearity, the \emph{idea} of linear session types is flawed (see~\cref{sec:cancellation}), as sessions may be dropped at any time, for any number of reasons, \eg a process panicking, dropping all sessions in scope.
 
@@ -423,9 +428,29 @@ fn main() -> () {
   connect(server, client);
 }
 \end{lstlisting}
-\end{minipage}%
+\end{minipage}
+\vspace{-0.25\baselineskip}
 
-Another feature which distinguishes Rusty Variation from the work by Laumann \etal~\cite{jespersen2015} is in how both libraries generalise binary choice to labelled choice. Rusty Variation uses enumerations to provide labelled choice, as described in~\cref{sec:choice}. Laumann \etal~\cite{jespersen2015} provide an \lstinline{offer!} macro, which expands a labelled offer to a series of binary offers, \eg offering a ternary choice expands to two nested invocations of \lstinline{offer_either}.
+While we haven't discussed recursive session types in this paper, Laumann \etal~\cite{jespersen2015} use a rather cumbersome encoding for recursive session types, using type-level de Bruijn indices. Below we show two definitions of the session type for a stream of integers, one in Rusty Variation, and one using the library by Laumann \etal~\cite{jespersen2015}:
+
+\begin{minipage}{0.5\linewidth}
+\begin{lstlisting}
+// Rusty Variation
+type IntStream = Send<i32, IntStream>;
+\end{lstlisting}  
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{lstlisting}
+// Laumann et al.
+type IntStream = Rec<Send<i32, Var<Z>>>;
+\end{lstlisting}  
+\end{minipage}
+\vspace{-0.25\baselineskip}
+
+\noindent
+The usage of de Bruijn indices to encode recursive session types is an artefact of the fact that, when Laumann \etal~\cite{jespersen2015} implemented their library, Rust didn't support recursive types.
+
+A last feature which distinguishes Rusty Variation from the work by Laumann \etal~\cite{jespersen2015} is in how both libraries generalise binary choice to labelled choice. Rusty Variation uses enumerations to provide labelled choice, as described in~\cref{sec:choice}. Laumann \etal~\cite{jespersen2015} provide an \lstinline{offer!} macro, which expands a labelled offer to a series of binary offers, \eg offering a ternary choice expands to two nested invocations of \lstinline{offer_either}.
 
 The \lstinline{offer!} macro allows---even requires---the programmer to label their choices, but during macro expansion these labels are simply discarded \emph{without being checked}. This allows us to write the program below, in which an inconsistency between types and documentation on the one hand, and the labelled implementation on the other hand, results in a bug. The example program implements a calculator server, which offers the choice between squaring and negation, in that order.
 
@@ -440,7 +465,21 @@ When the client selects the first option, they wrongly assume it represents squa
 type SqrSrv  = Recv<i32, Send<i32, Eps>>;
 type NegSrv  = Recv<i32, Send<i32, Eps>>;
 type CalcSrv = Offer<SqrSrv, NegSrv>;
+\end{lstlisting}
+\end{minipage}%
+\begin{minipage}[t]{0.5\linewidth}
+\begin{lstlisting}
 
+type SqrCli  = Send<i32, Recv<i32, Eps>>;
+type NegCli  = Send<i32, Recv<i32, Eps>>;
+type CalcCli = Choose<SqrCli, NegCli>;
+\end{lstlisting}
+\end{minipage}
+\vspace{-0.25\baselineskip}
+
+\vspace{-0.5\baselineskip}
+\begin{minipage}[t]{0.5\linewidth}
+\begin{lstlisting}
 fn server(c: Chan<(), CalcSrv>) {
   offer!{c,
     NEG => {
@@ -459,11 +498,6 @@ fn server(c: Chan<(), CalcSrv>) {
 \end{minipage}%
 \begin{minipage}[t]{0.5\linewidth}
 \begin{lstlisting}
-
-type SqrCli  = Send<i32, Recv<i32, Eps>>;
-type NegCli  = Send<i32, Recv<i32, Eps>>;
-type CalcCli = Choose<SqrCli, NegCli>;
-
 fn client(c: Chan<(), CalcCli>) {
   let c = c.sel1(); // select SqrCli
   let c = c.send(42);
@@ -480,24 +514,7 @@ fn main() {
 }
 \end{lstlisting}
 \end{minipage}
-
-Lastly, while we haven't discussed recursive session types in this paper, Laumann \etal~\cite{jespersen2015} use a rather cumbersome encoding for recursive session types, using type-level de Bruijn indices. Below we show two definitions of the session type for a stream of integers, one in Rusty Variation, and one using the library by Laumann \etal~\cite{jespersen2015}:
-
-\begin{minipage}{0.5\linewidth}
-\begin{lstlisting}
-// Rusty Variation
-type IntStream = Send<i32, IntStream>;
-\end{lstlisting}  
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{lstlisting}
-// Laumann et al.
-type IntStream = Rec<Send<i32, Var<Z>>>;
-\end{lstlisting}  
-\end{minipage}
-
-\noindent
-The usage of de Bruijn indices to encode recursive session types is an artefact of the fact that, when Laumann \etal~\cite{jespersen2015} implemented their library, Rust didn't support recursive types.
+\vspace{-0.25\baselineskip}
 
 
 \section{Future Work}\label{sec:future-work}
@@ -521,7 +538,6 @@ Lastly, we plan to ensure the correspondence between formal RV and the implement
 \subsection{Extending Exceptional GV}
 Several features of Rusty Variation are not covered by the formal language EGV. In~\cref{sec:selection}, we mention that selection isn't a part of EGV. In~\cref{sec:related-work}, we mention that recursion isn't part of EGV. If we wish to have any hope of formally verifying RV, along the lines described in~\cref{sec:verification}, we would need to extend EGV to cover these features.
 
-\clearpage
 \bibliographystyle{eptcs}
 \bibliography{main}
 
