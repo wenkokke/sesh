@@ -27,7 +27,7 @@ mod rusty_variation_bench {
     type CalcSrv = Recv<CalcOp, End>;
     type CalcCli = <CalcSrv as Session>::Dual;
 
-    fn calc_server(s: CalcSrv) -> Result<(), Box<Error>> {
+    fn calc_server(s: CalcSrv) -> Result<(), Box<dyn Error>> {
         ::rusty_variation::offer!(s, {
             CalcOp::CLOSE(s) => {
                 close(s)?;
@@ -58,7 +58,7 @@ mod rusty_variation_bench {
         })
     }
 
-    fn neg_client(s: CalcCli) -> Result<(), Box<Error>> {
+    fn neg_client(s: CalcCli) -> Result<(), Box<dyn Error>> {
         let n = thread_rng().gen();
         let s = ::rusty_variation::choose!(CalcOp::NEGATE, s);
         let s = send(n, s);
@@ -84,46 +84,6 @@ mod session_types_bench {
     use rand::{Rng,thread_rng};
     use test::Bencher;
     use session_types::*;
-
-    mod secret {
-
-        use session_types::*;
-
-        type AddSrv  = Recv<i32, Recv<i32, Send<i32, Eps>>>;
-        type SubSrv  = Recv<i32, Recv<i32, Send<i32, Eps>>>;
-        type CalcSrv = Offer<AddSrv, SubSrv>;
-
-        fn server(c: Chan<(), CalcSrv>) {
-            offer!{c,
-                   SUB => {
-                       let (c, n) = c.recv();
-                       let (c, m) = c.recv();
-                       let c = c.send(n - m);
-                       c.close();
-                   },
-                   ADD => {
-                       let (c, n) = c.recv();
-                       let (c, m) = c.recv();
-                       let c = c.send(n + m);
-                       c.close();
-                   }
-            }
-        }
-
-        type AddCli  = Send<i32, Send<i32, Recv<i32, Eps>>>;
-        type SubCli  = Send<i32, Send<i32, Recv<i32, Eps>>>;
-        type CalcCli = Choose<AddCli, SubCli>;
-
-        fn client(c: Chan<(), CalcCli>) {
-            let c = c.sel1();
-            let c = c.send(42);
-            let c = c.send(1);
-            let (c, n) = c.recv();
-            println!("{}", n);
-            c.close();
-        }
-    }
-
 
     // Calculator server
 
