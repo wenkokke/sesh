@@ -184,7 +184,7 @@ close(s)
 
 
 \subsection{Branching with offer! and choose!}\label{sec:choice}
-The \lstinline{choose_left}, \lstinline{choose_right}, and \lstinline{offer_either} functions let processes offer or make a \emph{binary} choice. These are \emph{derived} constructs~\cite{honda1993,dardha2017}---they are implemented using only the functions in our library---\lstinline{new}, \lstinline{send}, \lstinline{recv}, \lstinline{close}, and \lstinline{cancel}---and the sum type \lstinline{Either}. They send or receive a value of the type \lstinline{Either<S1, S2>}, where \lstinline{S1} and \lstinline{S2} are the possible continuations of the session.
+The \lstinline{choose_left}, \lstinline{choose_right}, and \lstinline{offer_either} functions let processes offer or make a \emph{binary} choice. These are \emph{derived} constructs~\cite{honda1993,dardha2017}. They are implemented using only the functions in our library---\lstinline{new}, \lstinline{send}, \lstinline{recv}, \lstinline{close}, and \lstinline{cancel}---and the sum type \lstinline{Either}. They send or receive a value of the type \lstinline{Either<S1, S2>}, where \lstinline{S1} and \lstinline{S2} are the possible continuations of the session.
 \begin{lstlisting}
 type Choose<S1, S2> = Send<Either<S1, S2>, End>;
 type Offer<S1, S2> = Recv<Either<S1, S2>, End>;
