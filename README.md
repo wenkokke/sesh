@@ -39,7 +39,7 @@ fn server(s: CalcSrv) -> Result<(), Box<dyn Error>> {
 }
 
 #[test]
-fn calc_srv_works() {
+fn server_works() {
     assert!(|| -> Result<(), Box<dyn Error>> {
 
         // Pick some random numbers.
