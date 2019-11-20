@@ -1,6 +1,5 @@
 \documentclass[acmsmall,review,anonymous]{acmart}
-\title{Rusty Variation}
-\subtitle{Session Types with Failure for Rust}
+\title{Sesh: Session Types with Failure for Rust}
 \author{Wen Kokke}
 \orcid{0000-0002-1662-0381}
 \affiliation{
@@ -40,7 +39,7 @@
 \input{fig-egv-reduction}
 \input{fig-affine-egv-to-agv}
 
-\section{Rusty Variation}
+\section{Session Types in Rust}
 
 \input{fig-rv-static-syntax}
 \input{fig-rv-syntactic-sugar}
@@ -49,7 +48,7 @@
 \input{fig-rv-reduction}
 
 \subsection{Linear and Affine EGV}
-EGV is a linear language, in the sense that it does not allow the implicit discarding of names, \ie implicit weakening. However, it does support \emph{explicit} weakening, in the form of \ref{rule:egv-ty-cancel}. RV supports implicit weakening. Our first step in investigating EGV's relation to RV is construct \emph{affine} EGV, a variant of EGV which \emph{does} support implicit weakening.
+EGV is a linear language, in the sense that it does not allow the implicit discarding of names, \ie implicit weakening. However, it does support \emph{explicit} weakening, in the form of \ref{rule:egv-ty-cancel}. Sesh supports implicit weakening. Our first step in investigating EGV's relation to Sesh is construct \emph{affine} EGV, a variant of EGV which \emph{does} support implicit weakening.
 
 We make three changes to EGV (hence linear EGV or \linearEGV) to obtain affine EGV (\affineEGV):
 \begin{enumerate}
@@ -164,14 +163,14 @@ The proof is similar to the proof for $\lta{}$, except that it is on the level o
 There exist variants of $\atl{}$ on the level of terms. However, these are less well-behaved. In defining $\atl{}$ on terms, there is a certain freedom in deciding where to place the explicit cancellation, corresponding to the commuting conversions for weakening. Furthermore, composing $\lta{}$ and $\atl{}$ on the term-level, there is no way to recover dropped free names, unless these are explicitly provided to the hypothetical $\atl{}$.
 
 \subsection{Exceptions and the Option Monad}
-EGV supports exceptions. Rust does not support exceptions. Our second step in investigating EGV's relation to RV is to construct affine asynchronous \emph{GV} (\affineAGV), a variant of \affineEGV which does not support exceptions.
+EGV supports exceptions. Rust does not support exceptions. Our second step in investigating EGV's relation to Sesh is to construct affine asynchronous \emph{GV} (\affineAGV), a variant of \affineEGV which does not support exceptions.
 
 We make four changes to \affineEGV to obtain \affineAGV:
 \begin{enumerate}
 \item
   Remove the $\gvRaise$ and $\gvTry{L}{x}{M}{N}$ constructs and their corresponding typing and reduction rules.
 \item
-  Add syntactic sugar for an option type, similar to the option type in RV~(\cref{fig:rv-syntactic-sugar}):
+  Add syntactic sugar for an option type, similar to the option type in Sesh~(\cref{fig:rv-syntactic-sugar}):
   \\
   \begin{minipage}{1.0\linewidth}
     \[%
@@ -187,7 +186,7 @@ We make four changes to \affineEGV to obtain \affineAGV:
     \]
   \end{minipage}
 \item
-  Change typing rules to reflect the possibility for failure, similar to RV~(\cref{fig:rv-static-typing}):
+  Change typing rules to reflect the possibility for failure, similar to Sesh~(\cref{fig:rv-static-typing}):
   \begin{center}
     \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyFun{S}{\gvTyOpt{\gvTyUnit}}}$}
@@ -199,7 +198,7 @@ We make four changes to \affineEGV to obtain \affineAGV:
       \RightLabel{\rlabel{\textsc{T-Close}}{rule:agv-ty-close-err}}
       \UIC{$\gvSeq{\ty{\Gamma}}{\gvClose{M}}{\gvTyOpt{\gvUnit}}$}
     \end{prooftree*}
-  \end{center} 
+  \end{center}
   \begin{center}
     \begin{prooftree*}
       \AXC{$\gvSeq{\ty{\Gamma}}{M}{\gvTyRecv{A}{S}}$}
@@ -218,7 +217,7 @@ We make four changes to \affineEGV to obtain \affineAGV:
     \end{prooftree*}
   \end{center}
 \item
-  Add reductions to deal with top-level values of the option type, similar to RV~(\cref{fig:rv-reduction}):
+  Add reductions to deal with top-level values of the option type, similar to Sesh~(\cref{fig:rv-reduction}):
   \begin{center}
     \begin{prooftree*}
       \AXC{}
@@ -369,7 +368,7 @@ From the four operational correspondences we have obtained thus far, we can infe
 \]
 
 \subsection{Channels and Shared State}
-\affineAGV is incredibly similar to RV. Though they are styled differently, the type and term languages are identical:
+\affineAGV is incredibly similar to Sesh. Though they are styled differently, the type and term languages are identical:
 \begin{center}
   \(
   \begin{array}{lcl}
@@ -391,9 +390,9 @@ From the four operational correspondences we have obtained thus far, we can infe
   \end{array}
   \)
 \end{center}
-Static typing and pure reduction ($\gvRedArrPure$) are also identical. However, the configuration languages are quite different. \affineAGV uses asynchronous session-typed channels with buffers, which are implemented in RV with shared memory on a heap.
+Static typing and pure reduction ($\gvRedArrPure$) are also identical. However, the configuration languages are quite different. \affineAGV uses asynchronous session-typed channels with buffers, which are implemented in Sesh with shared memory on a heap.
 
-We can translate programs in \affineAGV to RV. We name this translation $\mtr{}$. We define $\mtr{}$ in terms of two translations, $\mtrh{}$ and $\mtrc{}$, and an auxiliary function, $\zeta$. The translation $\mtrh{}$ constructs a heap and a substitution $\sigma$, and the translation $\mtrc{}$ collects the threads and makes the stylistic changes at the term level. The substitution $\sigma$ will be discussed soon:
+We can translate programs in \affineAGV to Sesh. We name this translation $\mtr{}$. We define $\mtr{}$ in terms of two translations, $\mtrh{}$ and $\mtrc{}$, and an auxiliary function, $\zeta$. The translation $\mtrh{}$ constructs a heap and a substitution $\sigma$, and the translation $\mtrc{}$ collects the threads and makes the stylistic changes at the term level. The substitution $\sigma$ will be discussed soon:
 \[
   \mtr{\gvConf{C}} = \rvRedTup[\sigma(\mtrc{\gvConf{C}})]{\sigma(\rvHeap{H})}{}
   \text{ where }\zeta=\zeta_{\gvConf{C}}\text{ and }(\rvHeap{H},\sigma)=\mtrh{\gvConf{C}}
@@ -473,10 +472,10 @@ The translation $\mtrh[a,b]{}$ writes a queue to a heap, laying the values out i
     \\ && \text{if }\tm{a}\in\zeta\text{ or }\tm{b}\in\zeta
   \end{array}
 \]
-Finally, the substitution $\sigma$: while EGV reuses the same channel throughout a session, in RV, pointers to the heap are single-use (each send operation stores its payload on the heap together with a fresh pointer to an empty location on the heap, and returns the other pointer to that location).
+Finally, the substitution $\sigma$: while EGV reuses the same channel throughout a session, in Sesh, pointers to the heap are single-use (each send operation stores its payload on the heap together with a fresh pointer to an empty location on the heap, and returns the other pointer to that location).
 When we translate configurations, we unroll the queues onto the heap. A session may have already performed several send operations, but the translation of the session channel points to the start of the linked list. The substitution $\sigma$, which we construct simultaneously with the heap, addresses this.
 
-We have an operational correspondence between \affineAGV and RV along $\mtr{}$, \ie the following diagrams commute:
+We have an operational correspondence between \affineAGV and Sesh along $\mtr{}$, \ie the following diagrams commute:
 \[
   \begin{tikzcd}
     \affineAGV
@@ -486,10 +485,10 @@ We have an operational correspondence between \affineAGV and RV along $\mtr{}$, 
     \affineAGV
     \dar{\mtr{}}
     \\
-    RV
+    Sesh
     \rar{\gvRedArrPure}
     &
-    RV
+    Sesh
   \end{tikzcd}
   \quad
   \begin{tikzcd}
@@ -500,14 +499,14 @@ We have an operational correspondence between \affineAGV and RV along $\mtr{}$, 
     \affineAGV
     \dar{\mtr{}}
     \\
-    RV
+    Sesh
     \rar{\gvRedArr^{+}}
     &
-    RV
+    Sesh
   \end{tikzcd}
 \]
-On the left, \affineAGV and RV denote their respective well-typed terms. This diagram commutes as the term syntax and typing of the two systems are identical, stylistic differences aside.
-On the right, \affineAGV and RV denote their respective well-typed configurations. This diagram commutes, though this is not obvious.
+On the left, \affineAGV and Sesh denote their respective well-typed terms. This diagram commutes as the term syntax and typing of the two systems are identical, stylistic differences aside.
+On the right, \affineAGV and Sesh denote their respective well-typed configurations. This diagram commutes, though this is not obvious.
 There are two distinct things happening in $\mtr{}$. First, the translation from channel-based communication to shared state. Second, a translation from linearised channels (multiple values are sent over a single buffered channel) to linear channels (each channel )
 
 

@@ -1,3 +1,67 @@
+//! # Sesh 🥂
+//!
+//! Sesh is an implementation of *deadlock-free binary session types with
+//! failure* in Rust.
+//!
+//! What does that mean?
+//!
+//! - The *session types* bit means that it uses Rust types to describe
+//! communication protocols, and ensure that they're implemented correctly.
+//! - The *binary* bit means that for any protocol, there's two parties involved, no
+//! more, no less.
+//! - The *deadlock-free* bit means, well, that if you write your session typed
+//! programs using Sesh, and you don't cheat by using other concurrency
+//! constructs, your can be sure your programs won't deadlock!
+//! - The *with failure* bit means Sesh is aware that sometimes programs may
+//! fail, and that it takes failure into account. If one of the parties involved
+//! in a protocol crashes, like if the thread panics, the Sesh lets the other
+//! party know, to make sure it doesn't end up just waiting forever.
+//!
+//! The author of this package is an academic, so she is contractually obliged
+//! to only come up with uninspiring examples. With that in mind, let's pretend
+//! you want a server that does addition. You send it two numbers, and it sends
+//! you a number back. There's two session types associated with that protocol.
+//! One for the client and one for the server. The type for the server, using
+//! Sesh, would be:
+//!
+//! ```
+//! # extern crate sesh;
+//! # use sesh::*;
+//! #
+//! type AddServer = Recv<i64, Recv<i64, Send<i64, End>>>;
+//! ```
+//!
+//! Session types are always *dual*. If the client sends a number, the server
+//! should be ready to receive a number, otherwise we'd be in trouble.
+//! We can get the session type for the client using duality. This just replaces
+//! all sends by receives, and vice versa:
+//!
+//! ```
+//! # extern crate sesh;
+//! # use sesh::*;
+//! #
+//! # type AddServer = Recv<i64, Recv<i64, Send<i64, End>>>;
+//! type AddClient = <AddServer as Session>::Dual;
+//! ```
+//!
+//! Once you've written down the protocol, the hard part is out of the way.
+//! Rust will make sure our server follows the protocol:
+//!
+//! ```
+//! # extern crate sesh;
+//! # use sesh::*;
+//! # use std::boxed::Box;
+//! # use std::error::Error;
+//! #
+//! # type AddServer = Recv<i64, Recv<i64, Send<i64, End>>>;
+//! #
+//! fn add_server(s: AddServer) -> Result<(), Box<dyn Error>> {
+//!   let (i, s) = recv(s)?;  // Receive the first number.
+//!   let (j, s) = recv(s)?;  // Receive the second number.
+//!   let s = send(i + j, s); // Send the sum of both numbers.
+//!   close(s)                // Close the session.
+//! }
+//! ```
 #![feature(never_type)]
 
 extern crate crossbeam_channel;
@@ -13,8 +77,21 @@ use std::panic;
 use crossbeam_channel::{Sender, Receiver, bounded, Select};
 use either::Either;
 
-/// The session types supported.
+/// Send `T`, then continue as `S`.
+#[must_use]
+#[derive(Debug)]
+pub struct Send<T, S: Session> {
+    channel: Sender<(T, S::Dual)>,
+}
 
+/// Receive `T`, then continue as `S`.
+#[must_use]
+#[derive(Debug)]
+pub struct Recv<T, S: Session> {
+    channel: Receiver<(T, S)>,
+}
+
+/// End of communication.
 #[must_use]
 #[derive(Debug)]
 pub struct End {
@@ -22,21 +99,19 @@ pub struct End {
     receiver: Receiver<()>,
 }
 
-#[must_use]
-#[derive(Debug)]
-pub struct Send<T, S: Session> {
-    channel: Sender<(T, S::Dual)>,
-}
-
-#[must_use]
-#[derive(Debug)]
-pub struct Recv<T, S: Session> {
-    channel: Receiver<(T, S)>,
-}
-
+/// Trait for session types. Provides duality.
 pub trait Session: marker::Sized + marker::Send {
+
+    /// The session type dual to `Self`.
     type Dual: Session<Dual=Self>;
 
+    /// Creates two new *dual* channels.
+    ///
+    /// *Here be dragons!*
+    ///
+    /// The `new` function is used internally in this library to define
+    /// functions such as `send` and `fork`. When combined with `thread::spawn`,
+    /// it can be used to construct deadlocks.
     #[doc(hidden)]
     fn new() -> (Self, Self::Dual);
 }
@@ -44,6 +119,7 @@ pub trait Session: marker::Sized + marker::Send {
 impl Session for End {
     type Dual = End;
 
+    #[doc(hidden)]
     fn new() -> (Self, Self::Dual) {
         let (sender1, receiver1) = bounded::<()>(1);
         let (sender2, receiver2) = bounded::<()>(1);
@@ -56,6 +132,7 @@ impl Session for End {
 impl<T: marker::Send, S: Session> Session for Send<T, S> {
     type Dual = Recv<T, S::Dual>;
 
+    #[doc(hidden)]
     fn new() -> (Self, Self::Dual) {
         let (sender, receiver) = bounded::<(T, S::Dual)>(1);
         return (Send { channel: sender }, Recv { channel: receiver });
@@ -65,6 +142,7 @@ impl<T: marker::Send, S: Session> Session for Send<T, S> {
 impl<T: marker::Send, S: Session> Session for Recv<T, S> {
     type Dual = Send<T, S::Dual>;
 
+    #[doc(hidden)]
     fn new() -> (Self, Self::Dual) {
         let (there, here) = Self::Dual::new();
         return (here, there);
@@ -72,8 +150,8 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
 }
 
 
-// Send and receive
-
+/// Send a value of type `T`. Always succeeds. Returns the continuation of the
+/// session `S`.
 pub fn send<T, S>(x: T, s: Send<T, S>) -> S
 where
     T: marker::Send,
@@ -84,6 +162,8 @@ where
     here
 }
 
+/// Receive a value of type `T`. Can fail. Returns either a pair of the received
+/// value and the continuation of the session `S` or an error.
 pub fn recv<T, S>(s: Recv<T, S>) -> Result<(T, S), Box<dyn Error>>
 where
     T: marker::Send,
@@ -94,13 +174,14 @@ where
 }
 
 
-
-// Cancellation and closing
-
+/// Cancels a session. Always succeeds. If the partner calls `recv` or `close`
+/// after cancellation, those calls fail.
 pub fn cancel<T>(x: T) -> () {
     mem::drop(x);
 }
 
+/// Closes a session. Synchronises with the partner, and fails if the partner
+/// has crashed.
 pub fn close(s: End) -> Result<(), Box<dyn Error>> {
     s.sender.send(()).unwrap_or(());
     s.receiver.recv()?;
@@ -108,8 +189,7 @@ pub fn close(s: End) -> Result<(), Box<dyn Error>> {
 }
 
 
-// Fork
-
+#[doc(hidden)]
 pub fn fork_with_thread_id<S, P>(p: P) -> (JoinHandle<()>, S::Dual)
 where
     S: Session + 'static,
@@ -128,6 +208,9 @@ where
     (other_thread, here)
 }
 
+/// Creates a child process, and a session with two dual endpoints of type `S`
+/// and `S::Dual`. The first endpoint is given to the child process. Returns the
+/// second endpoint.
 pub fn fork<S, P>(p: P) -> S::Dual
 where
     S: Session + 'static,
@@ -137,13 +220,17 @@ where
 }
 
 
-// Binary choice
-
+/// Offer a choice between two sessions `S1` and `S1`. Implemented using `Recv`
+/// and `Either`.
 pub type Offer<S1, S2> =
     Recv<Either<S1, S2>, End>;
+
+/// Choose between two sessions `S1` and `S2`. Implemented using `Send` and
+/// `Either`.
 pub type Choose<S1, S2> =
     Send<Either<<S1 as Session>::Dual, <S2 as Session>::Dual>, End>;
 
+/// Offer a choice between two sessions `S1` and `S2`.
 pub fn offer_either<'a, S1, S2, F, G, R>(s: Offer<S1, S2>, f: F, g: G)
                                          -> Result<R, Box<dyn Error + 'a>>
 where
@@ -157,6 +244,7 @@ where
     e.either(f, g)
 }
 
+/// Given a choice between sessions `S1` and `S1`, choose the first option.
 pub fn choose_left<'a, S1, S2>(s: Choose<S1, S2>) -> S1
 where
     S1: Session + 'a,
@@ -168,6 +256,7 @@ where
     here
 }
 
+/// Given a choice between sessions `S1` and `S1`, choose the second option.
 pub fn choose_right<'a, S1, S2>(s: Choose<S1, S2>) -> S2
 where
     S1: Session + 'a,
@@ -180,8 +269,7 @@ where
 }
 
 
-// N-ary choice
-
+/// Offer a choice between many different sessions wrapped in an `enum`
 #[macro_export]
 macro_rules! offer {
     ($session:expr, { $($pat:pat => $result:expr,)* }) => {
@@ -197,6 +285,7 @@ macro_rules! offer {
     };
 }
 
+/// Choose between many different sessions wrapped in an `enum`
 #[macro_export]
 macro_rules! choose {
     ($label:path, $session:expr) => {{
@@ -208,8 +297,7 @@ macro_rules! choose {
 }
 
 
-// Homogeneous Selection
-
+/// Error returned when `select` or `select_mut` are called with an empty vector.
 #[derive(Debug)]
 enum SelectError {
     EmptyVec,
@@ -238,6 +326,9 @@ impl Error for SelectError {
     }
 }
 
+/// Selects the first active session. Receives from the selected session, and
+/// removes the endpoint from the input vector. Returns the received value and
+/// the continuation of the selected session.
 pub fn select_mut<T, S>(rs: &mut Vec<Recv<T, S>>) -> Result<(T, S), Box<dyn Error>>
 where
     T: marker::Send,
@@ -275,6 +366,9 @@ where
     }
 }
 
+/// Selects the first active session. Receives from the selected session.
+/// Returns the received value, the continuation of the selected session, and a
+/// copy of the input vector without the selected session.
 pub fn select<T, S>(rs: Vec<Recv<T, S>>) -> (Result<(T, S), Box<dyn Error>>, Vec<Recv<T, S>>)
 where
     T: marker::Send,
