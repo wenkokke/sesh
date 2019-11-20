@@ -1,0 +1,9 @@
+[package]
+name = "sesh-benchmarks"
+version = "0.1.0"
+authors = ["Wen Kokke <wenkokke@users.noreply.github.com>"]
+
+[dev-dependencies]
+rand = "0.5"
+sesh = { git = "https://github.com/wenkokke/sesh" }
+session_types = { git = "https://github.com/Munksgaard/session-types", rev = "42abd00fb1ecefdc83725393f99225de363ce58b" }
