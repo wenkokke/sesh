@@ -1,3 +1,5 @@
+#![feature(never_type)]
+
 extern crate crossbeam_channel;
 extern crate either;
 
@@ -206,7 +208,7 @@ macro_rules! choose {
 }
 
 
-// Selection
+// Homogeneous Selection
 
 #[derive(Debug)]
 enum SelectError {

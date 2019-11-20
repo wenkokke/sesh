@@ -1,18 +1,18 @@
 #![feature(test)]
 
-extern crate rusty_variation;
+extern crate sesh;
 extern crate session_types;
 extern crate rand;
 extern crate test;
 
 #[cfg(test)]
-mod rusty_variation_bench {
+mod sesh_bench {
 
     use std::boxed::Box;
     use std::error::Error;
     use rand::{Rng,thread_rng};
     use test::Bencher;
-    use rusty_variation::*;
+    use sesh::*;
 
     // Calculator server
 
@@ -28,7 +28,7 @@ mod rusty_variation_bench {
     type CalcCli = <CalcSrv as Session>::Dual;
 
     fn calc_server(s: CalcSrv) -> Result<(), Box<dyn Error>> {
-        ::rusty_variation::offer!(s, {
+        ::sesh::offer!(s, {
             CalcOp::CLOSE(s) => {
                 close(s)?;
                 Ok(())
@@ -60,11 +60,11 @@ mod rusty_variation_bench {
 
     fn neg_client(s: CalcCli) -> Result<(), Box<dyn Error>> {
         let n = thread_rng().gen();
-        let s = ::rusty_variation::choose!(CalcOp::NEGATE, s);
+        let s = ::sesh::choose!(CalcOp::NEGATE, s);
         let s = send(n, s);
         let (n_, s) = recv(s)?;
         assert_eq!(-n, n_);
-        let s = ::rusty_variation::choose!(CalcOp::CLOSE, s);
+        let s = ::sesh::choose!(CalcOp::CLOSE, s);
         close(s)?;
         Ok(())
     }

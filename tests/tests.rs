@@ -1,8 +1,8 @@
 extern crate rand;
-extern crate rusty_variation;
+extern crate sesh;
 
 use rand::{Rng, thread_rng};
-use rusty_variation::*;
+use sesh::*;
 use std::boxed::Box;
 use std::error::Error;
 use std::marker;
