@@ -1,4 +1,4 @@
-# Sesho
+# Sesh 🥂
 
 [![Build Status](https://travis-ci.org/wenkokke/sesh.svg?branch=master)](https://travis-ci.org/wenkokke/sesh)
 
