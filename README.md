@@ -1,15 +1,15 @@
-# Rusty Variation
+# Sesho
 
-[![Build Status](https://travis-ci.org/wenkokke/rusty-variation.svg?branch=master)](https://travis-ci.org/wenkokke/rusty-variation)
+[![Build Status](https://travis-ci.org/wenkokke/sesh.svg?branch=master)](https://travis-ci.org/wenkokke/sesh)
 
 A library for deadlock-free session-typed communication in Rust.
 
 ```rust
 extern crate rand;
-extern crate rusty_variation;
+extern crate sesh;
 
 use rand::{Rng, thread_rng};
-use rusty_variation::*;
+use sesh::*;
 use std::boxed::Box;
 use std::error::Error;
 
