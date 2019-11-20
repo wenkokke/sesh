@@ -2,12 +2,12 @@
 \providecommand{\event}{ICE 2019} % Name of the event you are submitting to
 \input{preamble}
 
-\title{Rusty Variation\\ Deadlock-free Sessions with Failure in Rust}
+\title{Sesh: Deadlock-free Sessions with Failure in Rust}
 \author{Wen Kokke
   \institute{LFCS, University of Edinburgh, 10 Crichton St, EH8 9AB, Edinburgh, United Kingdom}
   \email{wen.kokke@ed.ac.uk}
 }
-\def\titlerunning{Rusty Variation}
+\def\titlerunning{Sesh}
 \def\authorrunning{Wen Kokke}
 
 \begin{document}
@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-  Rusty Variation (RV) is a library for session-typed communication in Rust which offers strong compile-time correctness guarantees. Programs written using RV are guaranteed to respect a specified protocol, and are guaranteed to be free from deadlocks and races.
+  Sesh is a library for session-typed communication in Rust which offers strong compile-time correctness guarantees. Programs written using Sesh are guaranteed to respect a specified protocol, and are guaranteed to be free from deadlocks and races.
 \end{abstract}
 
 \section{Introduction}\label{sec:introduction}
@@ -25,19 +25,19 @@ Session types are a substructural typing discipline, introduced by Honda~\cite{h
 
 Rust is an immensely popular systems programming language.\footnote{\url{https://insights.stackoverflow.com/survey/2019/}} It aims to combine efficiency with abstraction and thread and memory safety. However, out of the box, it does not offer a way to specify protocols and verify communication.
 
-In this paper, we present Rusty Variation\footnote{\url{https://github.com/wenkokke/rusty-variation/}} (RV), a library for session-typed communication in Rust which allows users to specify and check the adherence to communication protocols, in addition to offering strong correctness guarantees, such as freedom from deadlocks and unwanted races, while accounting for the possibility of failure. It is these strong guarantees of correctness, together with our account of failure, which sets us apart from previous work~\cite{jespersen2015}. We assume some familiarity with Rust. For an introduction to Rust, we refer the reader to \textit{The Rust Programming Language}~\cite{rust2019}.
+In this paper, we present Sesh\footnote{\url{https://github.com/wenkokke/sesh/}}, a library for session-typed communication in Rust which allows users to specify and check the adherence to communication protocols, in addition to offering strong correctness guarantees, such as freedom from deadlocks and unwanted races, while accounting for the possibility of failure. It is these strong guarantees of correctness, together with our account of failure, which sets us apart from previous work~\cite{jespersen2015}. We assume some familiarity with Rust. For an introduction to Rust, we refer the reader to \textit{The Rust Programming Language}~\cite{rust2019}.
 
 We base our work on Exceptional GV by Fowler \etal~\cite[EGV]{fowler2019}. Exceptional GV is a descendant of Good Variation~\cite[GV]{wadler2012}, which adds support for exceptions and the cancellation of sessions. GV is a \textlambda-calculus with operations for forking threads and sending and receiving values. Crucially, EGV has an affine type system, and permits the explicit cancellation of sessions. EGV guarantees session fidelity, global progress, freedom from deadlocks and livelocks, confluence, and termination. That is to say, there are no locks or race conditions, and all programs eventually halt. For a discussion of EGV and its metatheory, we refer the reader to the work by Fowler \etal~\cite{fowler2019}.
 
-Rusty Variation is an implementation of Exceptional GV (EGV) in Rust. We claim that RV is a faithful implementation of EGV, preserving much of EGV's metatheory, meaning RV guarantees session fidelity, global progress, confluence, and freedom from deadlocks and unwanted races. However, we depart from EGV in two ways:
+Sesh is an implementation of Exceptional GV (EGV) in Rust. We claim that Sesh is a faithful implementation of EGV, preserving much of EGV's metatheory, meaning Sesh guarantees session fidelity, global progress, confluence, and freedom from deadlocks and unwanted races. However, we depart from EGV in two ways:
 First, EGV relies upon exceptions and handlers. Rust, however, rejects exceptions in favour of monadic errors, \ie, wrapping possibly failing results in error types such as \lstinline{Option<T>} and \lstinline{Result<T,E>}.
 Second, the core language of EGV does not include general recursion. Rust does. In the presence of non-termination, we cannot guarantee livelock freedom, or---well---termination.
 
-RV is currently implemented on top of the channels provided by the \lstinline{crossbeam_channel} crate, but it can be implemented using any library which offers one-shot channels and selection.
+Sesh is currently implemented on top of the channels provided by the \lstinline{crossbeam_channel} crate, but it can be implemented using any library which offers one-shot channels and selection.
 
-The paper proceeds as follows. In~\cref{sec:contribution}, we describe the programming interface offered by Rusty Variation, and provide several example programs. In~\cref{sec:related-work}, we compare Rusty Variation to the related work by Laumann \etal~\cite{jespersen2015}. Finally, in~\cref{sec:future-work}, we describe future work on verifying the correctness guarantees offered by RV.
+The paper proceeds as follows. In~\cref{sec:contribution}, we describe the programming interface offered by Sesh, and provide several example programs. In~\cref{sec:related-work}, we compare Sesh to the related work by Laumann \etal~\cite{jespersen2015}. Finally, in~\cref{sec:future-work}, we describe future work on verifying the correctness guarantees offered by Sesh.
 
-\section{Rusty Variation}\label{sec:contribution}
+\section{Sesh}\label{sec:contribution}
 
 \subsection{Types, sessions, and duality}
 There are three basic types which we use to describe session protocols---or \emph{session types}: \lstinline{Send}, \lstinline{Recv}, and \lstinline{End}. We refer to values of these types as \emph{session endpoints} or, when referring to both endpoints, \emph{sessions}. Session endpoints wrap primitive channels---see~\cref{sec:implementation}. Any type built using these primitive types is a valid session type:
@@ -112,7 +112,7 @@ close(s)
 \begin{minipage}[t]{0.5\linewidth}
 \begin{lstlisting}
 let s = fork(move |s: Send<(), End>| {
-  
+
   // unintentionally
   // left blank.
 
@@ -126,7 +126,7 @@ close(s)
 \noindent
 Rust is an affine language, meaning that any value can be used \emph{at most once}. Hence, our first example doesn't compile: Rust complains about the second usage of \lstinline{s}, which attempts to use \lstinline{s} after transferring ownership of the value to \lstinline{send}.
 
-The second program is trickier, as Rust's type system doesn't help us here. Arguably, however, that is for the best. The idea of \emph{linear} session types ignores the reality that sessions may be dropped at any time, for any number of reasons: a process may panic, dropping all sessions in scope, or---when communicating over the network---the connection might fail. In~\cref{sec:introduction}, we mentioned that EGV has an affine type system, and permits the explicit cancellation of sessions. Following EGV, Rusty Variation also permits the cancellation of sessions. However, instead of having cancellation be an explicit primitive, we implement it implicitly for any dropped value, using Rust's destructors\footnote{\url{https://doc.rust-lang.org/1.35.0/book/ch15-03-drop.html}}.
+The second program is trickier, as Rust's type system doesn't help us here. Arguably, however, that is for the best. The idea of \emph{linear} session types ignores the reality that sessions may be dropped at any time, for any number of reasons: a process may panic, dropping all sessions in scope, or---when communicating over the network---the connection might fail. In~\cref{sec:introduction}, we mentioned that EGV has an affine type system, and permits the explicit cancellation of sessions. Following EGV, Sesh also permits the cancellation of sessions. However, instead of having cancellation be an explicit primitive, we implement it implicitly for any dropped value, using Rust's destructors\footnote{\url{https://doc.rust-lang.org/1.35.0/book/ch15-03-drop.html}}.
 
 When an initialised value in Rust goes out of scope, Rust calls its destructor, the \lstinline{drop} method. This method can be customised by implementing the \lstinline{Drop} trait. For instance, if we use the implementation of \lstinline{Drop} shown on the left, running the code on the right would print ``End dropped!'' twice, once from the child thread, and once from the main thread.
 
@@ -206,7 +206,7 @@ pub fn choose_left<S1: Session, S2: Session>(s: Choose<S1, S2>) -> S1 {
     let s = send(Either::Left(there), s);
     cancel(s);
     here
-} 
+}
 \end{lstlisting}
 Cancelling the endpoint is harmless---as long as the other processes is prepared, and uses the corresponding function \lstinline{offer_either}, this acts as an \emph{asynchronous} alternative to close. Pairing \lstinline{choose_left} with a manually implemented version of \lstinline{offer_either} which attempts to \emph{close} the continuation instead of cancelling it results in a runtime error.
 
@@ -268,12 +268,12 @@ Selection is a mechanism which allows processes to block on a list of actions, w
 \end{quotation}
 None of this advice is enforced by Rust---instead, this must be checked by the programmer---and bugs in the use of selection can be hard to find, especially if the approach using \lstinline{ready} is used.
 
-RV offers an alternative, the \lstinline{select_mut} function. This function operates on a vector of \emph{receiving} endpoints, returning the result of the first receive operation which completes, and removing the corresponding session from the vector. We restrict ourselves to the receiving endpoints, as RV's \lstinline{send} operation is non-blocking, hence selecting on sending endpoints doesn't make any sense.
+Sesh offers an alternative, the \lstinline{select_mut} function. This function operates on a vector of \emph{receiving} endpoints, returning the result of the first receive operation which completes, and removing the corresponding session from the vector. We restrict ourselves to the receiving endpoints, as Sesh's \lstinline{send} operation is non-blocking, hence selecting on sending endpoints doesn't make any sense.
 \begin{lstlisting}
 pub fn select_mut<T, S: Session>(rs: &mut Vec<Recv<T, S>>) -> Option<(T, S)>
 \end{lstlisting}
 
-The \lstinline{select_mut} function is implemented on top of \lstinline{crossbeam_channel::Select}, in a way which respects the rules listed above. In addition, RV offers an immutable variant of \lstinline{select_mut}, named \lstinline{select}, which returns the remainder of the endpoints along the with result of the selection. Using \lstinline{select_mut}, we can write the following program, which forks off ten threads, each sending an index between 1 and 10, and then repeatedly selects on the receiving endpoints, receiving and printing an index, printing the numbers 1 to 10 in a random order:
+The \lstinline{select_mut} function is implemented on top of \lstinline{crossbeam_channel::Select}, in a way which respects the rules listed above. In addition, Sesh offers an immutable variant of \lstinline{select_mut}, named \lstinline{select}, which returns the remainder of the endpoints along the with result of the selection. Using \lstinline{select_mut}, we can write the following program, which forks off ten threads, each sending an index between 1 and 10, and then repeatedly selects on the receiving endpoints, receiving and printing an index, printing the numbers 1 to 10 in a random order:
 
 \vspace{-0.5\baselineskip}
 \begin{minipage}[t]{0.5\linewidth}
@@ -305,7 +305,7 @@ loop {
 The \lstinline{select_mut} and \lstinline{select} functions are homogeneous: they only select over vectors of endpoints with \emph{the same type}. This rules out heterogeneous uses of selection, where the operations are of different types. Selection is not a part of EGV, and hence our strong correctness guarantees do not extend to selection.
 
 \subsection{Implementation}\label{sec:implementation}
-So far we have avoided discussing the implementation whenever possible, and with good reason: RV can be implemented using \emph{any} library which offers one-shot channels and selection. Hence, the important contribution in this paper is not the implementation, but the programming interface offered by RV. 
+So far we have avoided discussing the implementation whenever possible, and with good reason: Sesh can be implemented using \emph{any} library which offers one-shot channels and selection. Hence, the important contribution in this paper is not the implementation, but the programming interface offered by Sesh.
 
 Let us briefly discuss the implementation. We use the asynchronous channels from \lstinline{crossbeam_channel}, which at the time of writing is the de facto implementation of channels in Rust. Channels are typed, and can only transfer values of a single type. Therefore, we use one-shot channels, and encode sessions following Scalas and Yoshida, and Padovani~\cite{scalas2016,padovani2017}: Each \lstinline{send} creates a new session for the continuation, and uses the primitive \lstinline{send} operation to send the value along with one endpoint of the continuation session. If the primitive \lstinline{send} operation returns an error, we swallow it, using \lstinline{unwrap_or}. Each \lstinline{recv} receives a value together with a channel on which to continue the session. If the primitive \lstinline{recv} operation returns an error, the \lstinline{?}-operator short-circuits, and we return the error. The channels in \lstinline{crossbeam_channel} are highly optimised for one-shot usage.
 \begin{lstlisting}
@@ -339,16 +339,16 @@ pub fn close(s: End) -> Option<()> {
 \end{lstlisting}
 While the current implementation is efficient, it could likely be improved by replacing \lstinline{crossbeam_channel} with a minimal implementation of one-shot channels and selection.
 
-The Rust standard library offers \lstinline{std::sync::mpsc}, an implementation of channels. The first implementation of RV used the channels from this library. However, \lstinline{std::sync::mpsc} has some fundamental issues with its design\footnote{\url{https://github.com/rust-lang/rust/pull/42397\#issuecomment-315867774}}, and seems to be on its way out. In 2018, the selection mechanism, \lstinline{mpsc_select!}, was deprecated\footnote{\url{https://github.com/rust-lang/rust/issues/27800}}, and there are plans to phase out \lstinline{std::sync::mpsc} altogether~\cite{glavina2019}.
+The Rust standard library offers \lstinline{std::sync::mpsc}, an implementation of channels. The first implementation of Sesh used the channels from this library. However, \lstinline{std::sync::mpsc} has some fundamental issues with its design\footnote{\url{https://github.com/rust-lang/rust/pull/42397\#issuecomment-315867774}}, and seems to be on its way out. In 2018, the selection mechanism, \lstinline{mpsc_select!}, was deprecated\footnote{\url{https://github.com/rust-lang/rust/issues/27800}}, and there are plans to phase out \lstinline{std::sync::mpsc} altogether~\cite{glavina2019}.
 
 
 \subsection{What If I Want to Be Evil?}\label{sec:limitations}
-There are three ways in which you can make code written using Rusty Variation lock in safe Rust. The first is by writing an infinite loop, which we discussed earlier. 
+There are three ways in which you can make code written using Sesh lock in safe Rust. The first is by writing an infinite loop, which we discussed earlier.
 
 The biggest issue lies in the fact that Rust's semantics do not guarantee that the destructors are actually run. This does not mean that Rust can \emph{arbitrarily} decide not to run destructors, but that it is possible to write programs which leak memory. The most obvious example of this is \lstinline{std::mem::forget}\footnote{\url{https://doc.rust-lang.org/1.35.0/std/mem/fn.forget.html}}:
 \begin{quotation}
   \noindent
-  Takes ownership and ``forgets'' about the value \emph{without running its destructor}.  
+  Takes ownership and ``forgets'' about the value \emph{without running its destructor}.
 
   \noindent
   Any resources the value manages, such as heap memory or a file handle, will linger forever in an unreachable state. However, it does not guarantee that pointers to this memory will remain valid.
@@ -396,12 +396,12 @@ Laumann \etal~\cite{jespersen2015} remark that they ``cannot prevent a channel v
 
 We argue that even if Rust were able to enforce linearity statically, the \emph{idea} of linear session types is flawed (see~\cref{sec:cancellation}), as sessions may be dropped at any time, for any number of reasons, \eg a process panicking, dropping all sessions in scope.
 
-The following two programs illustrate the difference in handling failure between Rusty Variation and the work by Laumann \etal~\cite{jespersen2015}. In both programs, the programmer has forgotten to complete the server, accidentally dropping the session endpoint \lstinline{_s} or channel \lstinline{_c}, respectively. The program on the left, written in RV, returns \lstinline{None}. The program on the right, written using the library described by Laumann \etal\cite{jespersen2015}, segfaults. We have since reported this segfault to Laumann \etal, and they have fixed it in the most recent version of the library. The program on the right now panics:
+The following two programs illustrate the difference in handling failure between Sesh and the work by Laumann \etal~\cite{jespersen2015}. In both programs, the programmer has forgotten to complete the server, accidentally dropping the session endpoint \lstinline{_s} or channel \lstinline{_c}, respectively. The program on the left, written in Sesh, returns \lstinline{None}. The program on the right, written using the library described by Laumann \etal\cite{jespersen2015}, segfaults. We have since reported this segfault to Laumann \etal, and they have fixed it in the most recent version of the library. The program on the right now panics:
 
 \vspace{-0.5\baselineskip}
 \begin{minipage}[t]{0.5\linewidth}
 \begin{lstlisting}
-// Rusty Variation
+// Sesh
 // main() returns None
 fn server(_s: Recv<(), End>) {
   // unintentionally left blank.
@@ -431,26 +431,26 @@ fn main() -> () {
 \end{minipage}
 \vspace{-0.25\baselineskip}
 
-While we haven't discussed recursive session types in this paper, Laumann \etal~\cite{jespersen2015} use a rather cumbersome encoding for recursive session types, using type-level de Bruijn indices. Below we show two definitions of the session type for a stream of integers, one in Rusty Variation, and one using the library by Laumann \etal~\cite{jespersen2015}:
+While we haven't discussed recursive session types in this paper, Laumann \etal~\cite{jespersen2015} use a rather cumbersome encoding for recursive session types, using type-level de Bruijn indices. Below we show two definitions of the session type for a stream of integers, one in Sesh, and one using the library by Laumann \etal~\cite{jespersen2015}:
 
 \begin{minipage}{0.5\linewidth}
 \begin{lstlisting}
-// Rusty Variation
+// Sesh
 type IntStream = Send<i32, IntStream>;
-\end{lstlisting}  
+\end{lstlisting}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
 \begin{lstlisting}
 // Laumann et al.
 type IntStream = Rec<Send<i32, Var<Z>>>;
-\end{lstlisting}  
+\end{lstlisting}
 \end{minipage}
 \vspace{-0.25\baselineskip}
 
 \noindent
 The usage of de Bruijn indices to encode recursive session types is an artefact of the fact that, when Laumann \etal~\cite{jespersen2015} implemented their library, Rust didn't support recursive types.
 
-A last feature which distinguishes Rusty Variation from the work by Laumann \etal~\cite{jespersen2015} is in how both libraries generalise binary choice to labelled choice. Rusty Variation uses enumerations to provide labelled choice, as described in~\cref{sec:choice}. Laumann \etal~\cite{jespersen2015} provide an \lstinline{offer!} macro, which expands a labelled offer to a series of binary offers, \eg offering a ternary choice expands to two nested invocations of \lstinline{offer_either}.
+A last feature which distinguishes Sesh from the work by Laumann \etal~\cite{jespersen2015} is in how both libraries generalise binary choice to labelled choice. Sesh uses enumerations to provide labelled choice, as described in~\cref{sec:choice}. Laumann \etal~\cite{jespersen2015} provide an \lstinline{offer!} macro, which expands a labelled offer to a series of binary offers, \eg offering a ternary choice expands to two nested invocations of \lstinline{offer_either}.
 
 The \lstinline{offer!} macro allows---even requires---the programmer to label their choices, but during macro expansion these labels are simply discarded \emph{without being checked}. This allows us to write the program below, in which an inconsistency between types and documentation on the one hand, and the labelled implementation on the other hand, results in a bug. The example program implements a calculator server, which offers the choice between squaring and negation, in that order.
 
@@ -527,16 +527,16 @@ The \lstinline{frunk} crate\footnote{\url{https://beachape.com/frunk/frunk/index
 Rust has limited support for existential types\footnote{\url{https://github.com/rust-lang/rfcs/blob/master/text/2071-impl-trait-existential-types.md}}, which could be used to quantify over the types of the values received and the session continuations, and select on a homogeneous vector of the (purely fictional) type \lstinline[mathescape=true]{Vec<$\exists$T$.\exists$S$.$Recv<T,S>>}.
 
 \subsection{Testing \& Verification}\label{sec:verification}
-In~\cref{sec:contribution}, we claim that RV preserves the metatheory of EGV, and while a full discussion of the testing and formal verification efforts we have undertaken to ensure the correctness of RV is out of the scope of this paper, it would be remiss of us not substantiate this claim.
+In~\cref{sec:contribution}, we claim that Sesh preserves the metatheory of EGV, and while a full discussion of the testing and formal verification efforts we have undertaken to ensure the correctness of Sesh is out of the scope of this paper, it would be remiss of us not substantiate this claim.
 
-Firstly, RV is unit tested. We test various use-cases from EGV, from basic operations and their interactions with cancellation, to delegation and recursive session types. This test suite has caught several errors in the implementation. However, unit tests are error prone, and it is hard (if not impossible) to obtain a set of tests which cover all use-cases of a library. Unfortunately, tools such as RustBelt~\cite{jung2017} and Rust Distilled~\cite{weiss2018} are not yet mature enough to allow us to \emph{prove} the correctness of RV.
+Firstly, Sesh is unit tested. We test various use-cases from EGV, from basic operations and their interactions with cancellation, to delegation and recursive session types. This test suite has caught several errors in the implementation. However, unit tests are error prone, and it is hard (if not impossible) to obtain a set of tests which cover all use-cases of a library. Unfortunately, tools such as RustBelt~\cite{jung2017} and Rust Distilled~\cite{weiss2018} are not yet mature enough to allow us to \emph{prove} the correctness of Sesh.
 
-In the absence of a mature formal semantics for Rust, we are designing a formal language, RV (or ``formal RV''), which matches, as close as possible, the semantics of our Rust library. It is a concurrent lambda calculus with heap-based shared-memory semantics. We plan to prove that formal RV guarantees preservation, progress, termination, confluence and the diamond property, and deadlock and livelock freedom. Furthermore, we plan to show that there exists a translation from EGV to formal RV, based on the monadic reflection of exceptions into the \lstinline{Option} monad~\cite{filinski1994} and the translation of channel-based communication to shared memory, which is in operational correspondence with EGV. This would show that formal RV is a faithful implementation of EGV.
+In the absence of a mature formal semantics for Rust, we are designing a formal language, Sesh (or ``formal Sesh''), which matches, as close as possible, the semantics of our Rust library. It is a concurrent lambda calculus with heap-based shared-memory semantics. We plan to prove that formal Sesh guarantees preservation, progress, termination, confluence and the diamond property, and deadlock and livelock freedom. Furthermore, we plan to show that there exists a translation from EGV to formal Sesh, based on the monadic reflection of exceptions into the \lstinline{Option} monad~\cite{filinski1994} and the translation of channel-based communication to shared memory, which is in operational correspondence with EGV. This would show that formal Sesh is a faithful implementation of EGV.
 
-Lastly, we plan to ensure the correspondence between formal RV and the implementation of RV, using property-based testing. We plan to generate a series of random formal RV terms, using Neat~\cite{claessen2015}, and check if their behaviour, when run as Rust programs, corresponds to the behaviour of the term in formal RV.
+Lastly, we plan to ensure the correspondence between formal Sesh and the implementation of Sesh, using property-based testing. We plan to generate a series of random formal Sesh terms, using Neat~\cite{claessen2015}, and check if their behaviour, when run as Rust programs, corresponds to the behaviour of the term in formal Sesh.
 
 \subsection{Extending Exceptional GV}
-Several features of Rusty Variation are not covered by the formal language EGV. In~\cref{sec:selection}, we mention that selection isn't a part of EGV. In~\cref{sec:related-work}, we mention that recursion isn't part of EGV. If we wish to have any hope of formally verifying RV, along the lines described in~\cref{sec:verification}, we would need to extend EGV to cover these features.
+Several features of Sesh are not covered by the formal language EGV. In~\cref{sec:selection}, we mention that selection isn't a part of EGV. In~\cref{sec:related-work}, we mention that recursion isn't part of EGV. If we wish to have any hope of formally verifying Sesh, along the lines described in~\cref{sec:verification}, we would need to extend EGV to cover these features.
 
 \bibliographystyle{eptcs}
 \bibliography{main}
