@@ -527,23 +527,22 @@ isForking :: Term c n -> Bool
 isForking (Fork _body) = True
 isForking _            = False
 
--- |Merge two blocked threads.
-insertBlocked :: Thread c -> Blocked c -> Blocked c
-insertBlocked thread1 (Blocked thread2) = Ready thread1 thread2
-insertBlocked _       (Ready _ _ )      = error "broke *binary* constraint on session types"
-
--- |Insert a blocked thread into the buffer of blocked threads.
-insertBuffer :: (Ord c) => c -> Thread c -> [(c, Blocked c)] -> [(c, Blocked c)]
-insertBuffer chan thread [] = [(chan, Blocked thread)]
-insertBuffer chan thread buffer@(entry@(chan', _) : rest) = case compare chan chan' of
-  LT -> (chan, Blocked thread) : buffer
-  EQ -> bimap id (insertBlocked thread) entry : rest
-  GT -> entry : insertBuffer chan thread rest
-
 -- |Insert a thread into the thread pool.
 insertThread :: (Ord c) => Thread c -> Threads c -> Threads c
 insertThread thread@(Thread _ tm) Threads{..}
   | isForking tm              = Threads{ forking = thread : forking, .. }
-  | Just chan <- isBlocked tm = Threads{ blocked = insertBuffer chan thread blocked, .. }
+  | Just chan <- isBlocked tm = Threads{ blocked = insert chan thread blocked, .. }
   | isValue   tm              = Threads{ values  = thread : values, .. }
   | otherwise                 = Threads{ busy    = thread : busy, .. }
+  where
+    insert :: (Ord c) => c -> Thread c -> [(c, Blocked c)] -> [(c, Blocked c)]
+    insert chan thread [] = [(chan, Blocked thread)]
+    insert chan thread buffer@(entry@(chan', _) : rest) =
+      case compare chan chan' of
+        LT -> (chan, Blocked thread) : buffer
+        EQ -> bimap id (merge thread) entry : rest
+          where
+            merge :: Thread c -> Blocked c -> Blocked c
+            merge thread1 (Blocked thread2) = Ready thread1 thread2
+            merge _       (Ready _ _ )      = error "non-binary session"
+        GT -> entry : insert chan thread rest
