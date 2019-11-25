@@ -1,8 +1,12 @@
 module Main where
 
-import Language.EGV
+
+import Control.Monad (forM_)
 import Control.Search (search)
+import Language.EGV
 
 
 main :: IO ()
-main = print =<< search 30 (checkClosed Unit)
+main = do
+  tms <- search 10 (checkTypeAndUsage Unit)
+  forM_ tms print
