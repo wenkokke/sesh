@@ -18,6 +18,7 @@ dependencies:
 - size-based   >= 0.1.2.0 && < 0.2
 - lazy-search  >= 0.1.2.1 && < 0.2
 - testing-feat >= 1.1.0.0 && < 2
+- lattices     >= 1.7.1.1 && < 2
 
 library:
   source-dirs: src
