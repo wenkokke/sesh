@@ -124,8 +124,8 @@ impl Session for End {
         let (sender1, receiver1) = bounded::<()>(1);
         let (sender2, receiver2) = bounded::<()>(1);
 
-        return (End { sender: sender1, receiver: receiver2 },
-                End { sender: sender2, receiver: receiver1 });
+        (End { sender: sender1, receiver: receiver2 },
+         End { sender: sender2, receiver: receiver1 })
     }
 }
 
@@ -135,7 +135,7 @@ impl<T: marker::Send, S: Session> Session for Send<T, S> {
     #[doc(hidden)]
     fn new() -> (Self, Self::Dual) {
         let (sender, receiver) = bounded::<(T, S::Dual)>(1);
-        return (Send { channel: sender }, Recv { channel: receiver });
+        (Send { channel: sender }, Recv { channel: receiver })
     }
 }
 
@@ -145,7 +145,7 @@ impl<T: marker::Send, S: Session> Session for Recv<T, S> {
     #[doc(hidden)]
     fn new() -> (Self, Self::Dual) {
         let (there, here) = Self::Dual::new();
-        return (here, there);
+        (here, there)
     }
 }
 
@@ -176,7 +176,7 @@ where
 
 /// Cancels a session. Always succeeds. If the partner calls `recv` or `close`
 /// after cancellation, those calls fail.
-pub fn cancel<T>(x: T) -> () {
+pub fn cancel<T>(x: T) {
     mem::drop(x);
 }
 
@@ -202,7 +202,7 @@ where
         }));
         match p(there) {
             Ok(()) => (),
-            Err(e) => panic!("{}", e.description()),
+            Err(e) => panic!("{}", e.to_string()),
         }
     });
     (other_thread, here)
