@@ -5,9 +5,4 @@ extra-deps:
 - size-based-0.1.2.0
 - testing-feat-1.1.0.0
 - lazy-search-0.1.2.1
-
-# NOTE: requires resolver lts-6.27
-#- lvish-1.1.4
-#- bits-atomic-0.1.3
-#- dictionary-sharing-0.1.0.0
-#- testing-type-modifiers-0.1.0.1
+- indexed-extras-0.2
