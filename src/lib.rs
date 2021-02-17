@@ -80,14 +80,23 @@ use either::Either;
 /// Send `T`, then continue as `S`.
 #[must_use]
 #[derive(Debug)]
-pub struct Send<T, S: Session> {
+pub struct Send<T, S>
+where
+    T: marker::Send,
+    S: Session,
+    S::Dual: Session,
+{
     channel: Sender<(T, S::Dual)>,
 }
 
 /// Receive `T`, then continue as `S`.
 #[must_use]
 #[derive(Debug)]
-pub struct Recv<T, S: Session> {
+pub struct Recv<T, S>
+where
+    T: marker::Send,
+    S: Session,
+{
     channel: Receiver<(T, S)>,
 }
 
