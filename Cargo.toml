@@ -1,6 +1,6 @@
 [package]
 name = "sesh"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Wen Kokke <wenkokke@users.noreply.github.com>"]
 description = "A library for deadlock-free session-typed communication."
 repository = "http://github.com/wenkokke/sesh"
